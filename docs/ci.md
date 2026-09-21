@@ -36,6 +36,8 @@ Note that a manual dispatch runs the workflow file from the **selected ref**, no
 
 The server-only review command lives at `ci/commands/`, beside the workflow that runs it, and is **not** installed on developer machines — the local installer ships only `commands/`. The workflow copies both sets into the runner's global commands directory.
 
+The opencode CLI version is pinned in `ci/opencode-version`, because it is coupled to `ci/scripts/extract-review-text.js` (which parses `opencode run --format json`). Bumping the CLI and the extractor together, in one reviewed commit, is how a change to the event format gets handled. A project can override with the `OPENCODE_VERSION` variable.
+
 The workflow commits no project-local helper scripts: it ships its own (`ci/scripts/get-issue-data.js`, `ci/scripts/extract-review-text.js`), so adopting a project is one YAML file plus variables.
 
 ## Pinning
@@ -54,6 +56,7 @@ The workflow commits no project-local helper scripts: it ships its own (`ci/scri
 | `AI_POWERS_REF` | var | branch or SHA of ai-powers to use |
 | `AI_MODEL_NAME` | var | reviewer model id |
 | `AI_REVIEW_MENTION` | var, optional | comment text that triggers a manual review (default `@ai-reviewer`) |
+| `OPENCODE_VERSION` | var, optional | override the opencode CLI version; default is `ci/opencode-version` in ai-powers |
 | `OPENROUTER_API_KEY` | secret | model provider key |
 | `AIR_GITEA_API_TOKEN` | secret | token used to post the review comment |
 

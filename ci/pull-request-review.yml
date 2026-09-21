@@ -195,8 +195,17 @@ jobs:
 
       - name: Setup OpenCode CLI
         if: steps.setupenv.outputs.hit == 'true'
+        env:
+          # Optional per-repo override; otherwise the version pinned in ai-powers,
+          # which is versioned alongside the event extractor it must stay in
+          # step with.
+          OPENCODE_VERSION: ${{ vars.OPENCODE_VERSION }}
         run: |
-          npm i -g opencode-ai@1.18.15
+          set -euo pipefail
+          pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 1.18.15)"
+          version="${OPENCODE_VERSION:-$pinned}"
+          echo "installing opencode-ai@${version}"
+          npm i -g "opencode-ai@${version}"
 
       - name: Generate PR diff
         if: steps.setupenv.outputs.hit == 'true'

@@ -26,6 +26,7 @@ ci/
   commands/
     he9_pr_review.md       # server-only command the workflow runs
   scripts/                 # trigger evaluation + review-text extraction
+  opencode-version         # pinned opencode CLI version (coupled to the extractor)
 scripts/
   validate.mjs             # validates skills + commands (CI and locally)
 .github/workflows/
