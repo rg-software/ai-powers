@@ -81,10 +81,17 @@ jobs:
           # Skills (reviewer, responder, contract) -> runner-global skills dir.
           cp -R "$HOME/.gitea/trusted/ai-powers/skills/." "$HOME/.agents/skills/"
 
-          # Sanity: the contract and reviewer must be present.
+          # Project-owned helper, pinned to the base SHA so a PR can never
+          # supply the code that shapes its own review output.
+          git show "${{ steps.setupenv.outputs.prBaseSha }}":.gitea/workflows/scripts/extract-review-text.js \
+            > "$HOME/.gitea/trusted/extract-review-text.js"
+          node --check "$HOME/.gitea/trusted/extract-review-text.js"
+
+          # Sanity: everything the review run depends on must be present.
           [ -f "$HOME/.agents/skills/he9-review-contract/SKILL.md" ]
           [ -f "$HOME/.agents/skills/code-review-expert/SKILL.md" ]
           [ -f "$HOME/.config/opencode/commands/he9_pr_review.md" ]
+          [ -f "$HOME/.gitea/trusted/extract-review-text.js" ]
 
           # Locked-down permissions for the review agent (generated in-workflow,
           # never read from the PR checkout).
