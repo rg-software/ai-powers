@@ -107,10 +107,10 @@ jobs:
           powers="$HOME/.gitea/trusted/ai-powers"
 
           # Commands -> global commands dir (loaded even when project config is disabled).
-          # Local commands, plus the server-only review command that lives beside
-          # this workflow.
-          cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/"
-          cp "$powers/ci/commands/"*.md "$HOME/.config/opencode/commands/"
+          # Tolerant of either layout so a pinned older/newer ai-powers revision
+          # still works: local commands and/or the server-only review command.
+          [ -d "$powers/commands" ] && cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/" || true
+          [ -d "$powers/ci/commands" ] && cp "$powers/ci/commands/"*.md "$HOME/.config/opencode/commands/" || true
 
           # Skills (reviewer, responder, contract) -> runner-global skills dir.
           cp -R "$powers/skills/." "$HOME/.agents/skills/"
