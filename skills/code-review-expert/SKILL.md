@@ -21,6 +21,8 @@ Two rules from the contract that are easy to get wrong:
 
 If the project has a `.opencode/powers.jsonc` adapter, read it. It points at the project's conventions, specs, debt backlog, and base branch. Architecture and maintainability findings are graded against **those** files: cite the specific convention or spec requirement as the finding's `rule`. Drift is only a finding when you can name the rule it violates. With no adapter, use `none` as the rule and say so.
 
+If a graded input (conventions, specs) is absent, name it in the review's `Not reviewed` section and say what was therefore not graded. Never let a missing input pass silently.
+
 ## When to use
 
 - Code is hard to understand or maintain.
@@ -65,7 +67,7 @@ Load `references/code-quality-checklist.md`. Cover error handling (swallowed exc
 
 ### 6) Output
 
-Emit the **reviewer output format defined by the contract**. Do not invent a different structure. Every finding carries `id`, `file:line`, `severity` (with the trigger), `category`, `scope`, `rule`, `evidence`, `impact`, `suggestion`, `action`.
+Emit the **reviewer output format defined by the contract**. Do not invent a different structure. Every finding carries `id`, `file:line`, `severity` (with the trigger), `category`, `scope`, `rule`, `evidence`, `impact`, `suggestion`, `action`. Populate `Not reviewed` honestly — including any graded input that was absent.
 
 If there are no findings, say what you checked, what you did **not** check, and any residual risk. A clean review that omits its coverage is not a clean review.
 

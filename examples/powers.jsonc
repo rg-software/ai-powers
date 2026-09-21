@@ -6,7 +6,7 @@
 //   baseBranch : from origin/HEAD, else "main"
 //   conventions: openspec/conventions.md      (if present)
 //   specs      : openspec/specs/*/spec.md     (if present)
-//   debt       : docs/technical-debt.md       (if present)
+//   debt       : openspec/technical-debt.md   (if present)
 //   docs       : docs/*.md                    (if present)
 //   reviewDir  : .opencode/reviews            (created + gitignored on demand)
 //   tracker    : auto — configured forge MCP, else the git remote host, else ask
@@ -18,7 +18,7 @@
   // "baseBranch": "develop",
   // "conventions": "docs/conventions.md",
   // "specs": "specs/*/spec.md",
-  // "debt": "docs/tech-debt.md",
+  // "debt": "openspec/tech-debt.md",
   // "docs": ["docs/*.md", "design/*.md"],
   // "reviewDir": ".opencode/reviews",
   // "tracker": "github",

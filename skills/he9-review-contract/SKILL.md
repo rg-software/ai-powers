@@ -181,6 +181,14 @@ action:    fix-now|defer-debt|promote-issue|promote-change|wontfix
 
 ---
 
+## Coverage
+
+When a **graded input is absent** — no conventions file, no specs, no adapter — say so explicitly in the review's `Not reviewed` section: name the input and what therefore was not graded. Absence must never be silent. A review that drops architecture-drift grading because specs were missing must not read as if it were clean.
+
+This matters more than it looks: the commands find what to grade against by probing for these inputs, and a failed probe that goes unmentioned silently narrows the review while leaving its verdict unchanged.
+
+---
+
 ## Report formats
 
 ### Reviewer output
@@ -208,7 +216,9 @@ Contract: he9-review-contract
 - R-n -> defer-debt: one-line summary (for the backlog)
 
 ## Not reviewed
-Explicit list of anything in scope you did not assess, and why.
+Explicit list of anything in scope you did not assess, and why — including any
+graded input that was absent (e.g. no specs found, so drift was not graded
+against a contract).
 ```
 
 ### Responder output
@@ -234,7 +244,7 @@ Review: <ref to the review, e.g. PR #123 comment / local report>
 
 ## Mapping to the debt backlog
 
-A deferred finding lands in the project's debt backlog — the adapter's `debt` file, conventionally `docs/technical-debt.md` — with:
+A deferred finding lands in the project's debt backlog — the adapter's `debt` file, conventionally `openspec/technical-debt.md` — with:
 
 - **Priority** = the same `P` scale as severity. Do not invent a second one.
 - **Level** = the backlog's own health scale (`🟢/🟡/🔴/⚪`), which describes state, not severity.

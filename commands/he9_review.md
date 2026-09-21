@@ -6,7 +6,7 @@ description: "Code review / respond cycle: review the current branch locally, or
 
 Goal: improve code with a single review/respond cycle, including local maintainability refactoring where appropriate.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `docs/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
 
 The mode is determined by the argument:
 
@@ -19,7 +19,7 @@ The mode is determined by the argument:
 
    > Perform a code review of all changes in the current branch relative to the base branch (`{{baseBranch}}`), covering every modified, added, or deleted file in the branch diff. Review the full branch history, not just the latest commit, and report findings first with file/line references. If a file is out of scope or not reviewable, say so explicitly.
    >
-   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use the project adapter at `.opencode/powers.jsonc` for the conventions and specs to check architecture drift against, if present.
+   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use the project adapter at `.opencode/powers.jsonc` for the conventions and specs to check architecture drift against, if present. Populate the review's `Not reviewed` section, including any graded input that was absent.
    >
    > This is non-interactive: skip the skill's "hand-off" step and do not ask how to proceed.
 

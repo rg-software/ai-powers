@@ -51,7 +51,7 @@ The default skills target is `~/.agents/skills`, the default slash commands targ
 
 ## Per project
 
-Nothing is required. The commands probe the standard layout (`openspec/conventions.md`, `openspec/specs/*/spec.md`, `docs/technical-debt.md`, `docs/*.md`) and infer the base branch and tracker. A project that deviates from the standard layout can commit a small **optional** adapter at `.opencode/powers.jsonc` containing only the overrides. See `docs/adapter.md` and `examples/powers.jsonc`.
+Nothing is required. The commands probe the standard layout (`openspec/conventions.md`, `openspec/specs/*/spec.md`, `openspec/technical-debt.md`, `docs/*.md`) and infer the base branch and tracker. A project that deviates from the standard layout can commit a small **optional** adapter at `.opencode/powers.jsonc` containing only the overrides. See `docs/adapter.md` and `examples/powers.jsonc`.
 
 ## CI
 

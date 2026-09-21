@@ -9,7 +9,7 @@ The `he9_*` commands need to know a project's base branch, where its conventions
 | `baseBranch` | `origin/HEAD`, else `main` | `baseBranch` |
 | `conventions` | `openspec/conventions.md` if present | `conventions` |
 | `specs` | `openspec/specs/*/spec.md` if present | `specs` |
-| `debt` | `docs/technical-debt.md` if present | `debt` |
+| `debt` | `openspec/technical-debt.md` if present | `debt` |
 | `docs` | `docs/*.md` if present | `docs` |
 | `reviewDir` | `.opencode/reviews` (created and gitignored on demand) | `reviewDir` |
 | `tracker` | auto: a configured forge MCP, else the git remote host, else ask | `tracker` |

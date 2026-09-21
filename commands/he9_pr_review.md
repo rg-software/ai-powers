@@ -27,7 +27,7 @@ $ARGUMENTS
 ## Step 3: Review
 
 - Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill.
-- Resolve project inputs from the **base** SHA, not the head. Read `.opencode/powers.jsonc` at `<Base SHA>` if present (it overrides defaults); otherwise use the defaults `conventions` = `openspec/conventions.md` and `specs` = `openspec/specs/*/spec.md`. Use whichever exists to validate architecture and behavior; skip those that are absent.
+- Resolve project inputs from the **base** SHA, not the head. Read `.opencode/powers.jsonc` at `<Base SHA>` if present (it overrides defaults); otherwise use the defaults `conventions` = `openspec/conventions.md` and `specs` = `openspec/specs/*/spec.md`. Use whichever exists to validate architecture and behavior. If either is absent, state it in the review's `Not reviewed` section and say what was therefore not graded — a missing input must never pass silently.
 - Review correctness **and** maintainability within the touched scope: unnecessary complexity, poor responsibility boundaries, duplication introduced by the PR, testability regressions, and drift from the project's conventions and specs.
 - Treat maintainability issues in touched code as valid findings. Do not demand sweeping project-wide refactors outside the PR scope unless a broader issue directly blocks safe integration.
 - The runner has read-only tools; do not attempt edits.
