@@ -19,11 +19,12 @@ install/
   install.ps1  install.sh  # install skills + commands (single mechanism for this repo)
 docs/
   adapter.md               # per-project adapter: what goes in the repo vs the machine
-  ci.md                    # CI review: invariants, variables, adapter rules
+  ci.md                    # CI review: forge support, variables, pinning, adoption
 examples/
   powers.jsonc             # example project adapter
 ci/
-  pull-request-review.yml  # example server-side review workflow (pinned to this repo)
+  pull-request-review.yml  # server-side review workflow (Gitea or GitHub)
+  scripts/                 # its helpers: trigger evaluation + review-text extraction
 ```
 
 The reviewer and responder skills both load `he9-review-contract`; the commands reference it too. Change the rubric in one place and both sides move together.
@@ -54,7 +55,7 @@ Each project commits a small adapter at `.opencode/powers.jsonc` describing wher
 
 ## CI
 
-The PR-review workflow clones this repo at a pinned commit SHA into a trusted directory and copies the commands and skills into the runner's global directories. It never reads instructions from the PR checkout. Reproducible, and the reviewer runs the same contract revision as local.
+`ci/pull-request-review.yml` runs the review headless and posts it as a PR comment. It works on Gitea and GitHub — same file, different folder and token secret. It clones this repo at `AI_POWERS_REF` (a branch or SHA; the resolved SHA is stamped in the review footer), copies the commands and skills in, and never executes anything from the PR checkout. It carries its own helper scripts, so adopting a project is one YAML file plus variables. See `docs/ci.md`.
 
 ## Migration notes
 

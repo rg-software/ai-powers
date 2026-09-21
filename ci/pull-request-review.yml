@@ -1,53 +1,86 @@
-# Example: server-side PR review workflow (Gitea Actions / act-compatible).
-# Derived from the working continue-responder.yml in semaphore-game; the only
-# substantive change is that review commands, skills, and the contract are
-# loaded from ai-powers at a PINNED COMMIT instead of the upstream skill repo.
+# AI PR Reviewer — server-side code review on pull requests.
 #
-# SECURITY INVARIANT: runs under `pull_request_target`, so it is loaded from the
-# PR base branch and executes with base-context secrets even for untrusted PRs.
-# It must NEVER execute, build, or run code from the PR checkout. Only trusted,
-# pinned artifacts are executed: base-SHA scripts, ai-powers at AI_POWERS_REF,
-# and tools from the registry. Review any added step against this rule.
+# Forge: works on Gitea Actions and GitHub Actions (both implement the octokit
+# API surface and the actions used here). Place this file at
+# `.gitea/workflows/` (Gitea) or `.github/workflows/` (GitHub), then set the
+# repo variables and secrets listed in ai-powers docs/ci.md.
+#
+# SECURITY INVARIANT: this workflow runs under `pull_request_target`, so it is
+# loaded from the PR's base branch and executes with base-context secrets even
+# for untrusted PRs. Therefore it must NEVER execute, build, or otherwise run
+# code that originates from the PR checkout (workspace files, the checked-out
+# PR head, or anything fetched from the PR ref). Only trusted artifacts are
+# ever executed: base-SHA project scripts, ai-powers at AI_POWERS_REF, and tools
+# installed from the registry. If you add a step, review it against this rule
+# before merging.
 
 name: AI PR Reviewer
 
 on:
   issue_comment:
     types: [created]
+  # Trusted event: the workflow file and its scripts are loaded from the PR's
+  # base branch (never from the PR head), so a PR author cannot modify this
+  # workflow to run arbitrary steps with runner secrets.
   pull_request_target:
-    types: [opened, synchronize]
+    types: [opened, synchronize] # Triggers on new PRs and new pushes to PRs
 
 permissions:
   contents: read
   issues: write
-  pull-requests: write
+  pull-requests: write # Ensure PR write perms for commenting
 
 jobs:
-  review:
+  respond:
     runs-on: ubuntu-latest
     environment: continue-actions
     steps:
-      - name: Initial checkout for scripts
+      - name: Initial checkout (base context)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      # Clone ai-powers first: it supplies the trigger script, the review
+      # command, the review skills, and the shared contract. Trusted because it
+      # is a reviewed revision of our own repo, never anything from the PR.
+      - name: Clone ai-powers (trusted, pinned)
+        id: powers
+        env:
+          AI_POWERS_REPO: ${{ vars.AI_POWERS_REPO }}
+          AI_POWERS_REF: ${{ vars.AI_POWERS_REF }}
+        run: |
+          set -euo pipefail
+          : "${AI_POWERS_REPO:?AI_POWERS_REPO repo variable is required (owner/repo)}"
+          : "${AI_POWERS_REF:?AI_POWERS_REF repo variable is required (branch or SHA)}"
+          mkdir -p "$HOME/.gitea/trusted"
+          git clone --filter=blob:none --no-checkout \
+            "https://github.com/${AI_POWERS_REPO}.git" "$HOME/.gitea/trusted/ai-powers"
+          git -C "$HOME/.gitea/trusted/ai-powers" checkout --detach "$AI_POWERS_REF"
+          sha="$(git -C "$HOME/.gitea/trusted/ai-powers" rev-parse HEAD)"
+          echo "ai_powers_sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "ai-powers ref '${AI_POWERS_REF}' resolved to ${sha}"
 
       - name: Read trigger script
         id: read_script_content
         run: |
           echo "script_data<<EOF" >> $GITHUB_OUTPUT
-          cat ./.gitea/workflows/scripts/get-issue-data.js >> $GITHUB_OUTPUT
+          cat "$HOME/.gitea/trusted/ai-powers/ci/scripts/get-issue-data.js" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Evaluate triggers and fetch PR data
         id: setupenv
         uses: actions/github-script@v7
+        env:
+          # Optional: the mention that triggers a manual review. Defaults to
+          # "@ai-reviewer" inside the script when unset.
+          AI_REVIEW_MENTION: ${{ vars.AI_REVIEW_MENTION }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: ${{ steps.read_script_content.outputs.script_data }}
 
-      # Untrusted: checked out only so the reviewer can READ the diff. No step
-      # below may execute anything from this workspace.
+      # Check out the untrusted PR head so the AI can review it, but REMEMBER:
+      # this workspace is attacker-controlled. No step below may execute any
+      # file from it (see the SECURITY INVARIANT at the top of the file).
       - name: Checkout target code
         if: steps.setupenv.outputs.hit == 'true'
         uses: actions/checkout@v4
@@ -55,46 +88,45 @@ jobs:
           ref: ${{ steps.setupenv.outputs.checkoutRef }}
           fetch-depth: 1
 
-      - name: Fetch base and head
+      - name: Fetch PR head branch
         if: steps.setupenv.outputs.hit == 'true'
         run: |
           git fetch origin "${{ steps.setupenv.outputs.prHeadRef }}" --depth=50
+
+      - name: Fetch PR base branch
+        if: steps.setupenv.outputs.hit == 'true'
+        run: |
           git fetch origin "${{ steps.setupenv.outputs.prBaseSha }}" --depth=50
 
       - name: Prepare trusted review resources
         id: trusted
         if: steps.setupenv.outputs.hit == 'true'
-        env:
-          # Pin to a reviewed commit of ai-powers. Update deliberately.
-          AI_POWERS_REPO: ${{ vars.AI_POWERS_REPO }}   # owner/ai-powers
-          AI_POWERS_REF: ${{ vars.AI_POWERS_REF }}     # commit SHA
         run: |
+          set -euo pipefail
           mkdir -p "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
+          powers="$HOME/.gitea/trusted/ai-powers"
 
-          git clone --filter=blob:none --no-checkout "https://github.com/${AI_POWERS_REPO}.git" \
-            "$HOME/.gitea/trusted/ai-powers"
-          git -C "$HOME/.gitea/trusted/ai-powers" checkout --detach "${AI_POWERS_REF}"
-
-          # Commands -> global commands dir (always loaded, even with project config disabled).
-          cp "$HOME/.gitea/trusted/ai-powers/commands/"*.md "$HOME/.config/opencode/commands/"
+          # Commands -> global commands dir (loaded even when project config is disabled).
+          cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/"
 
           # Skills (reviewer, responder, contract) -> runner-global skills dir.
-          cp -R "$HOME/.gitea/trusted/ai-powers/skills/." "$HOME/.agents/skills/"
+          cp -R "$powers/skills/." "$HOME/.agents/skills/"
 
-          # Project-owned helper, pinned to the base SHA so a PR can never
-          # supply the code that shapes its own review output.
-          git show "${{ steps.setupenv.outputs.prBaseSha }}":.gitea/workflows/scripts/extract-review-text.js \
-            > "$HOME/.gitea/trusted/extract-review-text.js"
-          node --check "$HOME/.gitea/trusted/extract-review-text.js"
+          # The review-text extractor ships with ai-powers too.
+          node --check "$powers/ci/scripts/extract-review-text.js"
 
           # Sanity: everything the review run depends on must be present.
           [ -f "$HOME/.agents/skills/he9-review-contract/SKILL.md" ]
           [ -f "$HOME/.agents/skills/code-review-expert/SKILL.md" ]
           [ -f "$HOME/.config/opencode/commands/he9_pr_review.md" ]
-          [ -f "$HOME/.gitea/trusted/extract-review-text.js" ]
+          [ -f "$powers/ci/scripts/extract-review-text.js" ]
 
-          # Locked-down permissions for the review agent (generated in-workflow,
-          # never read from the PR checkout).
+          # Write a locked-down permissions config for the review agent. This is
+          # generated in-workflow (never read from the PR checkout) so a PR
+          # cannot weaken it. The agent only needs read-only git/file tools for
+          # review; bash is restricted to read-only git/listing commands, and
+          # network + write tools are denied outright so PR-injected content
+          # cannot exfiltrate the OpenRouter key via tools.
           cat > "$HOME/.gitea/trusted/opencode-ci.json" <<'EOF'
           {
             "$schema": "https://opencode.ai/config.json",
@@ -140,8 +172,10 @@ jobs:
             }
           }
           EOF
-          node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))" && echo "opencode-ci.json is valid JSON"
+
           echo "opencode_config=$HOME/.gitea/trusted/opencode-ci.json" >> "$GITHUB_OUTPUT"
+          ls -la "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
 
       - name: Setup Node.js
         if: steps.setupenv.outputs.hit == 'true'
@@ -151,7 +185,8 @@ jobs:
 
       - name: Setup OpenCode CLI
         if: steps.setupenv.outputs.hit == 'true'
-        run: npm i -g opencode-ai@1.18.15
+        run: |
+          npm i -g opencode-ai@1.18.15
 
       - name: Generate PR diff
         if: steps.setupenv.outputs.hit == 'true'
@@ -175,6 +210,7 @@ jobs:
           OPENCODE_DISABLE_AUTOUPDATE: "1"
           OPENCODE_DISABLE_PROJECT_CONFIG: "1"
         run: |
+          # Read and truncate the diff to avoid blowing up context
           DIFF_CONTENT="(no diff available)"
           if [ -f pr-diff.txt ]; then
             DIFF_CONTENT=$(head -c 50000 pr-diff.txt)
@@ -184,6 +220,7 @@ jobs:
             fi
           fi
 
+          # Construct the PR context injected into the review command ($ARGUMENTS)
           PROMPT="### PULL REQUEST DATA
           Number: ${ENTITY_NUMBER}
           Title: ${ENTITY_TITLE}
@@ -200,6 +237,10 @@ jobs:
           ### TRIGGERING COMMAND
           ${COMMENT_BODY}"
 
+          # Run the review command headless. Stream events as JSON so the final
+          # assistant text can be extracted cleanly for the PR comment.
+          # Note: this step runs under `bash -e` (act default), so a failing
+          # opencode run must not abort the script before diagnostics are printed.
           set +e
           opencode run \
             --command he9_pr_review \
@@ -212,16 +253,21 @@ jobs:
           set -e
           if [ $EXIT_CODE -ne 0 ]; then
             echo "opencode run failed with exit code $EXIT_CODE"
+            echo "--- stderr ---"
             tail -n 50 /tmp/opencode-run.err || true
+            echo "--- review-events.jsonl tail ---"
             tail -n 50 /tmp/review-events.jsonl || true
             exit $EXIT_CODE
           fi
 
-          node "$HOME/.gitea/trusted/extract-review-text.js" < /tmp/review-events.jsonl > /tmp/review.txt
+          node "$HOME/.gitea/trusted/ai-powers/ci/scripts/extract-review-text.js" \
+            < /tmp/review-events.jsonl > /tmp/review.txt
 
           EOF_DELIMITER="END_OF_REVIEW_OUTPUT_$(date +%s)"
           echo "review_output<<$EOF_DELIMITER" >> "$GITHUB_OUTPUT"
           cat /tmp/review.txt >> "$GITHUB_OUTPUT"
+          # The extractor trims trailing whitespace, so ensure the delimiter
+          # lands on its own line or act rejects the GITHUB_OUTPUT block.
           printf '\n' >> "$GITHUB_OUTPUT"
           echo "$EOF_DELIMITER" >> "$GITHUB_OUTPUT"
 
@@ -231,12 +277,18 @@ jobs:
         env:
           ISSUE_NUMBER: ${{ steps.setupenv.outputs.entityNumber }}
           RESULT: ${{ steps.analyze.outputs.review_output }}
+          AI_POWERS_SHA: ${{ steps.powers.outputs.ai_powers_sha }}
         with:
           github-token: ${{ secrets.AIR_GITEA_API_TOKEN }}
           script: |
+            // A stable marker identifies this bot's reviews independent of the
+            // token's user name. he9_review respond matches on it.
+            const MARKER = "<!-- he9-reviewer:v1 -->";
+            const body = (process.env.RESULT || "(no output from AI model)").trim();
+            const footer = `\n\n---\n<sub>ai-powers@${process.env.AI_POWERS_SHA || "unknown"}</sub>`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: Number(process.env.ISSUE_NUMBER),
-              body: process.env.RESULT || "(no output from AI model)"
+              body: `${MARKER}\n${body}${footer}`
             });

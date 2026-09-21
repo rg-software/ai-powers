@@ -49,7 +49,7 @@ The mode is determined by the argument:
 ## Mode: respond <PR number>
 
 1. If no PR number was supplied, list the open PRs and ask the user to choose one.
-2. Find and read the most recent review in the PR comments — comments authored by `{{reviewBot}}`. If there is none, inform the user and stop.
+2. Find and read the most recent review comment: prefer one carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it), and fall back to a comment authored by `{{reviewBot}}` only when no marked comment exists. If there is none, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
 4. When a finding is maintainability or architecture work, classify it as fix-in-branch-now, or defer into the debt backlog / a focused issue / a spec change.
 5. Save the response under `{{reviewDir}}/<UTC timestamp>-pr-<number>/response.md` (gitignored, as in local mode).

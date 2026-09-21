@@ -26,10 +26,16 @@ All keys are optional. A command uses the key if present, otherwise falls back t
   "docs": ["docs/*.md"],                // extra design docs to cross-check; optional
   "reviewDir": ".opencode/reviews",     // review/response run folders; gitignored
   "tracker": "gitea",                    // "gitea" | "github" | "none"
-  "reviewBot": "ai-reviewer",            // username whose PR comments are treated as reviews
+  "reviewBot": "ai-reviewer",            // fallback author match; the CI marker is primary
   "contract": "he9-review-contract"      // skill name; override only if you fork the contract
 }
 ```
+
+## What the adapter does not control
+
+`tracker` and the other keys configure the **local commands** only. They do **not** reconfigure CI: the PR-review workflow is a forge-specific file (Gitea `.gitea/workflows/`, GitHub `.github/workflows/`) with its own variables and secrets. See `docs/ci.md`.
+
+The reviewer's identity is not matched by `reviewBot` alone. The CI reviewer stamps every review with the marker `<!-- he9-reviewer:v1 -->`, and `he9_review respond` matches that marker first, falling back to `reviewBot` only when no marked comment exists. Renaming the token's user therefore does not break the cycle.
 
 ## How commands consume it
 
@@ -45,6 +51,17 @@ All keys are optional. A command uses the key if present, otherwise falls back t
 | `AI_MODEL_NAME` | CI review workflow | model for the server-side reviewer |
 | `GITEA_TOKEN` | `he9_push_pr`, `he9_debt` promote | tracker auth |
 | `OPENCODE_CONFIG_DIR` | optional | override the global config dir the installer targets |
+
+These are **repo variables/secrets** on the forge, used by the CI workflow:
+
+| Name | Kind | Meaning |
+|------|------|---------|
+| `AI_POWERS_REPO` | var | `owner/ai-powers` to clone |
+| `AI_POWERS_REF` | var | branch or commit SHA to use; the resolved SHA is recorded in the review footer |
+| `AI_MODEL_NAME` | var | reviewer model |
+| `AI_REVIEW_MENTION` | var, optional | comment text that triggers a manual review (default `@ai-reviewer`) |
+| `OPENROUTER_API_KEY` | secret | model provider key |
+| `AIR_GITEA_API_TOKEN` | secret | token used to post the review comment |
 
 ## CI note
 
