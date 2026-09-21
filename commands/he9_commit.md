@@ -6,7 +6,7 @@ description: "Commit the current task with a Conventional Commit message (auto-l
 
 Goal: finalize the current task with a commit on the current branch.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
 
 ## Step 1. Understand context
 

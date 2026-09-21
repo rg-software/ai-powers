@@ -6,7 +6,7 @@ description: "Code review / respond cycle: review a target locally (branch, unco
 
 Goal: improve code with a single review/respond cycle, including local maintainability refactoring where appropriate.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (from `origin/HEAD`, else `main`), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `reviewDir` (`.opencode/reviews`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
 
 ## Argument
 

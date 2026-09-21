@@ -11,6 +11,16 @@ import { dirname, join, relative, resolve } from "node:path";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const KNOWN_INPUT_KEYS = new Set([
+  "baseBranch",
+  "conventions",
+  "specs",
+  "debt",
+  "docs",
+  "reviewDir",
+  "tracker",
+  "contract",
+]);
 const errors = [];
 
 function frontmatter(text) {
@@ -93,6 +103,18 @@ for (const path of commandFiles) {
   const mentionsArgument = /^##\s+Argument\b/m.test(text) || /determined by the argument/i.test(text);
   if (mentionsArgument && !text.includes("$ARGUMENTS")) {
     errors.push(`${rel(path)}: describes an argument but never uses $ARGUMENTS`);
+  }
+
+  // Commands list only the project inputs they use; a typo would silently
+  // advertise a key that does not exist. Keys are written as `key` (default),
+  // so require the parenthetical to avoid matching default values like `main`.
+  const usage = text.match(/This command uses:([\s\S]*?)(?:\.\s|\.$)/);
+  if (usage) {
+    for (const [, key] of usage[1].matchAll(/`([A-Za-z][A-Za-z0-9]*)`\s*\(/g)) {
+      if (!KNOWN_INPUT_KEYS.has(key)) {
+        errors.push(`${rel(path)}: listed project input "${key}" is not a known key`);
+      }
+    }
   }
 }
 
