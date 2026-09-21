@@ -10,26 +10,30 @@ Goal: improve code with a single review/respond cycle, including local maintaina
 
 ## Argument
 
-`$ARGUMENTS` selects the **review target** — what is being reviewed. This is distinct from a finding's `scope` in the contract (`in-touched`/`adjacent`/`project-wide`).
+`$ARGUMENTS` selects a **review target** (what is being reviewed). If it begins with `respond`, use the respond mode instead. A review target is distinct from a finding's `scope` in the contract (`in-touched`/`adjacent`/`project-wide`).
 
-| target | diff spec |
-|--------|-----------|
+| target | resolved diff spec |
+|--------|--------------------|
 | `branch` (default, or empty) | `<base>...HEAD` — every commit on the branch, not just the latest |
 | `worktree` | uncommitted work: `git diff HEAD` **plus untracked files** |
 | `staged` | `git diff --cached` |
-| `commit` | the last commit: `HEAD~1..HEAD` |
-| `range <A>..<B>` | an explicit range |
-| `path <p>` | the default target restricted to path `p` |
-| `respond <PR>` | respond to the latest review on the given PR (see below) |
+| `commit` | `git show HEAD` (the last commit; also correct for the root commit) |
+| `range <A>..<B>` | the given range |
+| `path <p>` | the default target restricted to a path: `(<base>...HEAD) -- <p>` |
 
-`<base>` is the resolved base branch. For `worktree`, untracked files are invisible to `git diff`; enumerate them with `git status --porcelain` and include them, or the review silently misses new files.
+`<base>` is the resolved base branch.
+
+Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate them with `git status --porcelain` and read their contents; otherwise new files are reviewed by name only.
 
 ## Mode: review a target
 
+0. This mode requires a `reviewer` subagent (see `docs/adapter.md` → "Local reviewer agent"). If it is not configured, do not surface a raw subagent-not-found error: tell the user the mode needs a `reviewer` subagent, point at that section, and offer to continue with a self-review using the same skills instead.
+
 1. Resolve the target to an explicit diff spec from the table. State the resolved spec before reviewing.
+
 2. Invoke the `@reviewer` subagent with this task:
 
-   > Perform a code review of this change set: `<resolved diff spec>`. List the files included, and if any are out of scope or not reviewable, say so explicitly.
+   > Perform a code review of this change set: `<resolved diff spec>`. List the files included. For untracked files, read each one in full and review it as added code. If any file is out of scope or not reviewable, say so explicitly.
    >
    > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use `.opencode/powers.jsonc` (if present) for the conventions and specs to check architecture drift against. Populate the review's `Not reviewed` section, including any graded input that was absent.
    >

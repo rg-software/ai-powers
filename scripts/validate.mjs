@@ -70,15 +70,40 @@ if (!existsSync(skillsDir)) {
 }
 
 // --- commands ---------------------------------------------------------------
+const commandFiles = [];
 for (const dir of [join(root, "commands"), join(root, "ci", "commands")]) {
   if (!existsSync(dir)) continue;
   for (const file of readdirSync(dir)) {
-    if (!file.endsWith(".md")) continue;
-    const path = join(dir, file);
-    const fm = frontmatter(readFileSync(path, "utf8"));
-    if (!fm || !field(fm, "description")) {
-      errors.push(`${rel(path)}: missing "description" frontmatter`);
-    }
+    if (file.endsWith(".md")) commandFiles.push(join(dir, file));
+  }
+}
+
+for (const path of commandFiles) {
+  const text = readFileSync(path, "utf8");
+
+  const fm = frontmatter(text);
+  if (!fm || !field(fm, "description")) {
+    errors.push(`${rel(path)}: missing "description" frontmatter`);
+  }
+
+  if (text.includes("{{")) {
+    errors.push(`${rel(path)}: contains a {{...}} placeholder — not an opencode template variable; use a plain reference`);
+  }
+
+  const mentionsArgument = /^##\s+Argument\b/m.test(text) || /determined by the argument/i.test(text);
+  if (mentionsArgument && !text.includes("$ARGUMENTS")) {
+    errors.push(`${rel(path)}: describes an argument but never uses $ARGUMENTS`);
+  }
+}
+
+// A command that invokes the local reviewer subagent depends on a prerequisite
+// living in the consuming project, so this repo must document it.
+const referencesReviewer = commandFiles.some((path) => readFileSync(path, "utf8").includes("@reviewer"));
+if (referencesReviewer) {
+  const adapterDoc = join(root, "docs", "adapter.md");
+  const documented = existsSync(adapterDoc) && readFileSync(adapterDoc, "utf8").includes("Local reviewer agent");
+  if (!documented) {
+    errors.push('a command references "@reviewer" but docs/adapter.md has no "Local reviewer agent" section');
   }
 }
 

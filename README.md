@@ -21,6 +21,7 @@ docs/
   ci.md                    # CI review: forge support, variables, pinning, adoption
 examples/
   powers.jsonc             # annotated override example (usually you need nothing)
+  reviewer-agent.jsonc     # local reviewer subagent required by he9_review
 ci/
   pull-request-review.yml  # server-side review workflow (Gitea or GitHub)
   commands/

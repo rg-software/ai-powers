@@ -1,0 +1,21 @@
+// Example local reviewer agent for `he9_review`.
+//
+// Copy the "agent" block into the project's opencode.jsonc (or
+// .opencode/opencode.json). The key is `agent` (singular) -- `agents` is
+// silently ignored. Set REVIEWER_MODEL in your shell, then restart opencode.
+//
+// The model id is intentionally not committed: it is machine-specific.
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Reviews code for best practices.",
+      "model": "{env:REVIEWER_MODEL}",
+      "permission": {
+        "read": "allow",
+        "edit": "deny"
+      }
+    }
+  }
+}

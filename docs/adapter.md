@@ -43,8 +43,35 @@ The reviewer's identity is not configurable here and not matched by user name. T
 
 | Variable | Used by | Meaning |
 |----------|---------|---------|
-| `REVIEWER_MODEL` | `@reviewer` subagent | model for local cross-model review |
+| `REVIEWER_MODEL` | `@reviewer` subagent | model for local cross-model review; see "Local reviewer agent" below |
 | `GITEA_TOKEN` | `he9_push_pr`, `he9_debt` promote | tracker auth |
 | `OPENCODE_CONFIG_DIR` | optional | override the global config dir the installer targets |
 
 CI-only variables and secrets are listed in `docs/ci.md`.
+
+## Local reviewer agent
+
+`he9_review`'s review mode invokes a **`reviewer` subagent**, so the local cycle is a cross-model review rather than the author grading their own work. This is **project config — ai-powers does not install it.** Define it in the project's `opencode.jsonc` (or `.opencode/opencode.json`):
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Reviews code for best practices.",
+      "model": "{env:REVIEWER_MODEL}",
+      "permission": { "read": "allow", "edit": "deny" }
+    }
+  }
+}
+```
+
+Notes:
+
+- The key is `agent` (singular). `agents` is silently ignored.
+- `{env:REVIEWER_MODEL}` interpolates the environment variable at load time, keeping the model id out of the repo — it is deliberately machine-specific and not pinned here.
+- Set it in your shell (e.g. `REVIEWER_MODEL=anthropic/claude-sonnet-4-6`), then restart opencode; config is loaded at startup.
+- `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `bash` to scope the target with `git`.
+
+A ready-to-copy file is at `examples/reviewer-agent.jsonc`. Without this agent `he9_review` cannot start; it names the prerequisite and offers a self-review fallback instead of failing with a raw subagent-not-found error.
