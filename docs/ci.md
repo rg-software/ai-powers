@@ -13,6 +13,12 @@ The workflow is written to work on both **Gitea Actions** and **GitHub Actions**
 
 Nothing else in the workflow is forge-specific.
 
+## Running on demand
+
+The workflow also accepts a manual dispatch with a PR number (Actions → AI PR Reviewer → Run workflow). This exercises the full path — clone, copy, review, post — without waiting for a PR event, which is the quickest way to verify a change to the workflow or to ai-powers.
+
+Note that a manual dispatch runs the workflow file from the **selected ref**, not from the base branch, so it does not have the same trusted-base guarantee as `pull_request_target`. It is a maintainer convenience, not a substitute for the automated path.
+
 ## Invariants (do not weaken)
 
 - The workflow is loaded from the PR **base** branch (`pull_request_target`), never the PR head.

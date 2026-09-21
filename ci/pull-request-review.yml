@@ -24,6 +24,13 @@ on:
   # workflow to run arbitrary steps with runner secrets.
   pull_request_target:
     types: [opened, synchronize] # Triggers on new PRs and new pushes to PRs
+  # Manual run, to exercise the pipeline without waiting for a PR event.
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to review
+        required: true
+        type: string
 
 permissions:
   contents: read

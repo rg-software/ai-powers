@@ -82,6 +82,43 @@ if (eventName === "issue_comment" && payload.issue?.pull_request) {
     } catch (error) {
         console.error("Failed to fetch PR commits:", error.message);
     }
+} else if (eventName === "workflow_dispatch") {
+    // 3. Triggered manually with a PR number, so the pipeline can be exercised
+    //    on demand instead of waiting for a PR event.
+    const raw = context.payload.inputs?.pr_number || "";
+    const number = Number(raw);
+
+    if (!Number.isInteger(number) || number <= 0) {
+        core.setFailed(`workflow_dispatch requires a positive integer pr_number (got "${raw}")`);
+    } else {
+        try {
+            const { data: prData } = await github.rest.pulls.get({
+                owner: repo.owner,
+                repo: repo.repo,
+                pull_number: number,
+            });
+
+            hit = true;
+            commentBody = `A manual review was requested for pull request #${number}. Please provide a complete code review.`;
+            entityNumber = number;
+            entityTitle = prData.title;
+            entityBody = prData.body;
+            prHeadSha = prData.head?.sha;
+            prBaseRef = prData.base?.ref;
+            prBaseSha = prData.base?.sha;
+            prHeadRef = "refs/pull/" + number + "/head";
+
+            const { data: commitsData } = await github.rest.pulls.listCommits({
+                owner: repo.owner,
+                repo: repo.repo,
+                pull_number: number,
+                per_page: 100
+            });
+            prCommitsShas = JSON.stringify(commitsData.map(c => c.sha));
+        } catch (error) {
+            core.setFailed(`Failed to fetch PR #${number}: ${error.message}`);
+        }
+    }
 }
 
 // Export variables to the workflow

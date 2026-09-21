@@ -26,6 +26,10 @@ ci/
   commands/
     he9_pr_review.md       # server-only command the workflow runs
   scripts/                 # trigger evaluation + review-text extraction
+scripts/
+  validate.mjs             # validates skills + commands (CI and locally)
+.github/workflows/
+  validate.yml             # runs the validation on every change to main
 ```
 
 The reviewer and responder skills both load `he9-review-contract`; the commands reference it too. Change the rubric in one place and both sides move together.

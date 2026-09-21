@@ -1,0 +1,43 @@
+# Validates ai-powers content on every change. `main` is what every consuming
+# project's CI clones and executes, so a broken skill here breaks all of them.
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate skills and commands
+        run: node scripts/validate.mjs
+
+      - name: Lint the CI template YAML
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('ci/pull-request-review.yml')); print('ci/pull-request-review.yml OK')"
+
+      - name: Dry-run the installer
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/ai-powers-install
+          bash install/install.sh \
+            --skills-dir /tmp/ai-powers-install/skills \
+            --commands-dir /tmp/ai-powers-install/commands
+
+          for name in code-review-expert he9-review-contract receiving-code-review; do
+            [ -f "/tmp/ai-powers-install/skills/${name}/SKILL.md" ] || { echo "missing skill: ${name}"; exit 1; }
+          done
+          for name in he9_commit he9_debt he9_push_pr he9_review he9_start; do
+            [ -f "/tmp/ai-powers-install/commands/${name}.md" ] || { echo "missing command: ${name}"; exit 1; }
+          done
+          [ ! -f /tmp/ai-powers-install/commands/he9_pr_review.md ] || { echo "server-only command leaked into the local install"; exit 1; }
+
+          echo "installer dry-run OK"
