@@ -17,20 +17,20 @@ Goal: push the current feature branch and open a pull request.
 - Verify the working tree is clean (`git status`).
 - If there are uncommitted changes and `$ARGUMENTS` is **not** `commit`: inform the user, suggest committing, and stop. Do not update or push the branch.
 - If there are uncommitted changes and `$ARGUMENTS` **is** `commit`: run the `he9_commit` workflow without prompting, then continue.
-- Ensure the branch is up to date; fetch and merge/rebase against the resolved base branch if needed.
+- Ensure the branch is up to date; fetch and merge/rebase against the resolved `baseBranch` if needed.
 - Push the branch; set upstream on first push (`git push -u origin <branch>`).
 
 ## Step 2. Draft PR content
 
-- Title from the branch's commits: `git log <base>..HEAD --oneline`, where `<base>` is the resolved base branch; prefer the primary Conventional Commit subject.
-- Body from the commit history and the diff against the resolved base branch: what changed and why; include the verification performed (per `he9_commit`).
+- Title from the branch's commits: `git log <base>..HEAD --oneline`, where `<base>` is the resolved `baseBranch`; prefer the primary Conventional Commit subject.
+- Body from the commit history and the diff against the resolved `baseBranch`: what changed and why; include the verification performed (per `he9_commit`).
 - Link the tracked issue from the branch name (`issue-{id}`): `Resolves #123` or `Fixes #123`. Skip if not issue-based.
 
 ## Step 3. Open the PR
 
 - Check whether an open PR already exists for the branch (via the resolved tracker's tooling).
   - If one exists: show its link, reuse it, and do **not** create a second PR. Only update its title/body if the user explicitly asks.
-  - If none exists: create the PR targeting the resolved base branch.
+  - If none exists: create the PR targeting the resolved `baseBranch`.
 
 ## Step 4. Respect existing PRs
 

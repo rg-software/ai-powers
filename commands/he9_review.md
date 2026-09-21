@@ -21,7 +21,7 @@ Goal: improve code with a single review/respond cycle, including local maintaina
 | `range <A>..<B>` | the given range |
 | `path <p>` | the default target restricted to a path: `(<base>...HEAD) -- <p>` |
 
-`<base>` is the resolved base branch.
+`<base>` is the resolved `baseBranch`.
 
 Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate them with `git status --porcelain` and read their contents; otherwise new files are reviewed by name only.
 
@@ -40,7 +40,7 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
    > This is non-interactive: skip the skill's "hand-off" step and do not ask how to proceed.
 
 3. Create the run folder and save the review as `review.md`:
-   - Root: the resolved review directory.
+   - Root: the resolved `reviewDir`.
    - Run folder: `<UTC timestamp>-<target>-<current branch>` (e.g. `20260921T1430-worktree-fix-drag`).
    - Ensure the review root is gitignored: if it is not covered by an existing rule, add it to the project's `.gitignore`.
    - Do not commit anything under the review root.
@@ -64,9 +64,9 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
 
 ## Mode: respond <PR number>
 
-1. If no PR number was supplied, list the open PRs and ask the user to choose one.
+1. If no PR number was supplied, list the open PRs through the resolved `tracker` and ask the user to choose one.
 2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
 4. When a finding is maintainability or architecture work, classify it as fix-in-branch-now, or defer into the debt backlog / a focused issue / a spec change.
-5. Save the response under the resolved review directory in `<UTC timestamp>-respond-pr-<number>/response.md` (gitignored, as in review mode).
+5. Save the response under the resolved `reviewDir` in `<UTC timestamp>-respond-pr-<number>/response.md` (gitignored, as in review mode).
 6. Ask whether to fix the in-branch issues now, or defer the selected maintainability findings to the backlog.

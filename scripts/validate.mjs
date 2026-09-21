@@ -105,14 +105,21 @@ for (const path of commandFiles) {
     errors.push(`${rel(path)}: describes an argument but never uses $ARGUMENTS`);
   }
 
-  // Commands list only the project inputs they use; a typo would silently
-  // advertise a key that does not exist. Keys are written as `key` (default),
-  // so require the parenthetical to avoid matching default values like `main`.
+  // Commands list only the project inputs they use. Verify both that the key is
+  // known and that the command actually references it outside the preamble --
+  // otherwise the list is an unverified claim. Keys are written as `key`
+  // (default), so require the parenthetical to avoid matching defaults like `main`.
   const usage = text.match(/This command uses:([\s\S]*?)(?:\.\s|\.$)/);
   if (usage) {
+    const preamble = text.match(/\*\*Project inputs[\s\S]*?(?:\r?\n\s*\r?\n)/);
+    const body = preamble ? text.replace(preamble[0], "") : text;
     for (const [, key] of usage[1].matchAll(/`([A-Za-z][A-Za-z0-9]*)`\s*\(/g)) {
       if (!KNOWN_INPUT_KEYS.has(key)) {
         errors.push(`${rel(path)}: listed project input "${key}" is not a known key`);
+        continue;
+      }
+      if (!new RegExp("\\b" + key + "\\b").test(body)) {
+        errors.push(`${rel(path)}: lists project input "${key}" but never uses it outside the preamble`);
       }
     }
   }

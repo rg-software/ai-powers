@@ -54,6 +54,6 @@ Do not log 🟢 Healthy findings — they are report status only, never backlog 
    - a tracked issue if it is a bounded implementation task;
    - a spec/design change if it affects behavior contracts, architecture, or multiple subsystems;
    - for doc drift, fix the doc directly when straightforward — apply spec fixes through the appropriate change command/skill rather than editing the specs tree by hand.
-4. If creating an issue: list existing issues first and avoid duplicates.
+4. If creating an issue: list existing issues through the resolved `tracker` first and avoid duplicates.
 5. If creating a change: use the appropriate change-proposal command/skill.
 6. Report back and update the item's status in the resolved debt backlog file.

@@ -23,7 +23,7 @@ Goal: identify the current task and prepare a feature branch for it.
 
 ## Step 2a. Tracked issue task
 
-- Fetch the issue title and body by number or from the open list.
+- Fetch the issue title and body through the resolved `tracker`, by number or from the open list.
 - Summarize the goal to the user.
 - Treat the issue as the current context for the remaining steps.
 - Derive the branch name per the conventions: `{user}/issue-{id}-{short-task-desc}`.
@@ -43,7 +43,7 @@ Goal: identify the current task and prepare a feature branch for it.
 ## Step 3. Switch to the feature branch
 
 - If there are uncommitted changes, `git stash` them first.
-- Switch to the resolved base branch and pull the latest from the remote.
+- Switch to the resolved `baseBranch` and pull the latest from the remote.
 - Create the feature branch if it does not exist, then switch to it.
 - If you stashed changes earlier, `git stash pop`.
 
