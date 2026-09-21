@@ -1,10 +1,13 @@
 // Trigger evaluation and PR data extraction for the AI PR Reviewer workflow.
-// Runs via actions/github-script, so `context`, `repo`, `payload`, `eventName`,
-// `github` (octokit) and `core` are injected. The octokit calls used here are
-// available on both Gitea Actions and GitHub Actions.
+// Runs via actions/github-script, which injects `github` (octokit), `context`
+// and `core` as globals. `payload`, `repo` and `eventName` are NOT injected --
+// they are destructured from `context` below.
 //
-// The mention that triggers a manual review is configurable via the
+// The octokit calls used here are available on both Gitea Actions and GitHub
+// Actions. The mention that triggers a manual review is configurable via the
 // AI_REVIEW_MENTION repo variable (default "@ai-reviewer").
+const { payload, repo, eventName } = context;
+
 const REVIEW_MENTION = (process.env.AI_REVIEW_MENTION || "@ai-reviewer").trim().toLowerCase();
 
 let hit = false;

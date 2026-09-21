@@ -20,6 +20,9 @@ jobs:
       - name: Validate skills and commands
         run: node scripts/validate.mjs
 
+      - name: Test the trigger script
+        run: node scripts/test-trigger-script.mjs
+
       - name: Lint the CI template YAML
         run: |
           python3 -c "import yaml; yaml.safe_load(open('ci/pull-request-review.yml')); print('ci/pull-request-review.yml OK')"
