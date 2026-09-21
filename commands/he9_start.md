@@ -6,14 +6,18 @@ description: "Start a task: pick a tracked issue, a spec change, or an ad-hoc ta
 
 Goal: identify the current task and prepare a feature branch for it.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the conventions file when present.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
+
+## Argument
+
+`$ARGUMENTS` is the task source: a tracked issue number, the name of an active change, or a freeform description. An empty argument means derive the task (Step 1).
 
 ## Step 1. Identify the task source
 
-- If the user supplied a tracked issue number, use it (Step 2a).
-- If the user supplied a name matching an active change under the changes directory, use it (Step 2b).
-- If the user described a task in freeform, use it as an ad-hoc task (Step 2c).
-- If no task was supplied, derive it from the list of currently added/modified/deleted files (Step 2c).
+- If the argument is a tracked issue number, use it (Step 2a).
+- If the argument matches an active change, use it (Step 2b).
+- If the argument is freeform, use it as an ad-hoc task (Step 2c).
+- If there was no argument, derive the task from the list of currently added/modified/deleted files (Step 2c).
 - If the task still cannot be identified, inform the user and stop.
 - If in doubt, list the open issues and the active changes and ask the user to choose.
 
@@ -33,14 +37,14 @@ Goal: identify the current task and prepare a feature branch for it.
 
 ## Step 2c. Ad-hoc task
 
-- Derive a short description from the user's input or the changed files.
+- Derive a short description from the argument or the changed files.
 - Derive the branch name per the conventions: `{user}/{short-task-desc}`.
 
 ## Step 3. Switch to the feature branch
 
 - If there are uncommitted changes, `git stash` them first.
-- Switch to `{{baseBranch}}` and pull the latest from the remote.
+- Switch to the resolved base branch and pull the latest from the remote.
 - Create the feature branch if it does not exist, then switch to it.
 - If you stashed changes earlier, `git stash pop`.
 
-Note: `{user}` is `git config user.name`. Branch naming details live in the adapter's conventions file.
+Note: `{user}` is `git config user.name`. Branch naming details live in the resolved conventions file.

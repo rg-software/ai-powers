@@ -1,5 +1,5 @@
 ---
-description: "Code review / respond cycle: review the current branch locally, or respond to the latest review on a PR"
+description: "Code review / respond cycle: review a target locally (branch, uncommitted work, a commit, a range), or respond to the latest review on a PR"
 ---
 
 # Perform a code review / respond cycle
@@ -8,43 +8,55 @@ Goal: improve code with a single review/respond cycle, including local maintaina
 
 **Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `openspec/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
 
-The mode is determined by the argument:
+## Argument
 
-- `local` (default, or no argument): review the current branch and respond.
-- `respond <PR number>`: respond to the most recent review of a given PR.
+`$ARGUMENTS` selects the **review target** — what is being reviewed. This is distinct from a finding's `scope` in the contract (`in-touched`/`adjacent`/`project-wide`).
 
-## Mode: local
+| target | diff spec |
+|--------|-----------|
+| `branch` (default, or empty) | `<base>...HEAD` — every commit on the branch, not just the latest |
+| `worktree` | uncommitted work: `git diff HEAD` **plus untracked files** |
+| `staged` | `git diff --cached` |
+| `commit` | the last commit: `HEAD~1..HEAD` |
+| `range <A>..<B>` | an explicit range |
+| `path <p>` | the default target restricted to path `p` |
+| `respond <PR>` | respond to the latest review on the given PR (see below) |
 
-1. Invoke the `@reviewer` subagent with this task:
+`<base>` is the resolved base branch. For `worktree`, untracked files are invisible to `git diff`; enumerate them with `git status --porcelain` and include them, or the review silently misses new files.
 
-   > Perform a code review of all changes in the current branch relative to the base branch (`{{baseBranch}}`), covering every modified, added, or deleted file in the branch diff. Review the full branch history, not just the latest commit, and report findings first with file/line references. If a file is out of scope or not reviewable, say so explicitly.
+## Mode: review a target
+
+1. Resolve the target to an explicit diff spec from the table. State the resolved spec before reviewing.
+2. Invoke the `@reviewer` subagent with this task:
+
+   > Perform a code review of this change set: `<resolved diff spec>`. List the files included, and if any are out of scope or not reviewable, say so explicitly.
    >
-   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use the project adapter at `.opencode/powers.jsonc` for the conventions and specs to check architecture drift against, if present. Populate the review's `Not reviewed` section, including any graded input that was absent.
+   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use `.opencode/powers.jsonc` (if present) for the conventions and specs to check architecture drift against. Populate the review's `Not reviewed` section, including any graded input that was absent.
    >
    > This is non-interactive: skip the skill's "hand-off" step and do not ask how to proceed.
 
-2. Create the run folder and save the review as `review.md`:
-   - Root: the adapter's `{{reviewDir}}` (default `.opencode/reviews`).
-   - Run folder: `<UTC timestamp>-<current branch>` (e.g. `20260921T1430-he9-issue-42-fix-drag`).
-   - Ensure the review root is gitignored: if `.opencode/reviews` is not covered by an existing rule, add it to the project's `.gitignore`.
+3. Create the run folder and save the review as `review.md`:
+   - Root: the resolved review directory.
+   - Run folder: `<UTC timestamp>-<target>-<current branch>` (e.g. `20260921T1430-worktree-fix-drag`).
+   - Ensure the review root is gitignored: if it is not covered by an existing rule, add it to the project's `.gitignore`.
    - Do not commit anything under the review root.
 
-3. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
+4. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
 
-4. Produce the response in the contract's responder output format.
+5. Produce the response in the contract's responder output format.
 
-5. Save the response as `response.md` alongside `review.md` in the same run folder.
+6. Save the response as `response.md` alongside `review.md` in the same run folder.
 
-6. Read both files and print their full contents as rendered markdown. Do not summarize or omit anything. Then state the run folder path so the pair can be found later.
+7. Read both files and print their full contents as rendered markdown. Do not summarize or omit anything. Then state the run folder path so the pair can be found later.
 
-7. Recommend what to address in this branch now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
+8. Recommend what to address now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
 
-8. For real maintainability or architecture findings that should not be addressed in this branch, recommend recording them in the debt backlog or promoting them into a focused issue / spec change.
+9. For real maintainability or architecture findings that should not be addressed now, recommend recording them in the debt backlog or promoting them into a focused issue / spec change.
 
-9. Ask the user how to proceed:
-   - **A**: fix all recommended in-branch issues.
-   - **B**: choose issues to fix in this branch.
-   - **C**: defer selected maintainability issues to the backlog.
+10. Ask the user how to proceed:
+    - **A**: fix all recommended issues.
+    - **B**: choose issues to fix.
+    - **C**: defer selected maintainability issues to the backlog.
 
 ## Mode: respond <PR number>
 
@@ -52,5 +64,5 @@ The mode is determined by the argument:
 2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
 4. When a finding is maintainability or architecture work, classify it as fix-in-branch-now, or defer into the debt backlog / a focused issue / a spec change.
-5. Save the response under `{{reviewDir}}/<UTC timestamp>-pr-<number>/response.md` (gitignored, as in local mode).
+5. Save the response under the resolved review directory in `<UTC timestamp>-respond-pr-<number>/response.md` (gitignored, as in review mode).
 6. Ask whether to fix the in-branch issues now, or defer the selected maintainability findings to the backlog.

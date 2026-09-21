@@ -19,7 +19,7 @@ Goal: finalize the current task with a commit on the current branch.
 
 ## Step 3. Documentation update
 
-- If the task changes technical or runtime behavior, update the relevant canonical spec at `{{specs}}` (per the project's documentation precedence).
+- If the task changes technical or runtime behavior, update the relevant canonical spec under the resolved specs glob (per the project's documentation precedence).
 
 ## Step 4. Commit changes
 
