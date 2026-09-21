@@ -19,11 +19,11 @@ install/
   install.ps1  install.sh  # install skills + commands (single mechanism for this repo)
 docs/
   adapter.md               # per-project adapter: what goes in the repo vs the machine
+  ci.md                    # CI review: invariants, variables, adapter rules
 examples/
   powers.jsonc             # example project adapter
 ci/
   pull-request-review.yml  # example server-side review workflow (pinned to this repo)
-  README.md                # CI invariants, variables, adapter rules
 ```
 
 The reviewer and responder skills both load `he9-review-contract`; the commands reference it too. Change the rubric in one place and both sides move together.
