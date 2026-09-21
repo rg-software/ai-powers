@@ -59,10 +59,21 @@ foreach ($skill in Get-ChildItem -LiteralPath $srcSkills -Directory) {
 
 # Commands.
 $commandCount = 0
+$shipped = @(Get-ChildItem -LiteralPath $srcCommands -Filter *.md -File | Select-Object -ExpandProperty Name)
 foreach ($file in Get-ChildItem -LiteralPath $srcCommands -Filter *.md -File) {
     Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $CommandsDir $file.Name) -Force
     Write-Host ("installed command: {0}" -f $file.Name)
     $commandCount++
+}
+
+# Prune commands this repo no longer ships locally (e.g. a command moved to the
+# server-side set), so a renamed or relocated command does not linger. Only
+# touches files matching the he9_ prefix, which this installer owns.
+foreach ($existing in Get-ChildItem -LiteralPath $CommandsDir -Filter 'he9_*.md' -File -ErrorAction SilentlyContinue) {
+    if ($shipped -notcontains $existing.Name) {
+        Remove-Item -LiteralPath $existing.FullName -Force
+        Write-Host ("removed stale command: {0}" -f $existing.Name)
+    }
 }
 
 Write-Host ""

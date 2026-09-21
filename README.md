@@ -11,9 +11,8 @@ skills/
   he9-review-contract/     # the shared rubric: axes, severities, finding schema, dispositions
   code-review-expert/      # reviewer (forked, aligned to the contract)
   receiving-code-review/   # responder (forked, aligned to the contract)
-commands/
+commands/                  # installed on dev machines
   he9_review.md            # local review / respond cycle
-  he9_pr_review.md         # server-side PR review (CI)
   he9_start.md  he9_commit.md  he9_push_pr.md  he9_debt.md
 install/
   install.ps1  install.sh  # install skills + commands (single mechanism for this repo)
@@ -24,7 +23,9 @@ examples/
   powers.jsonc             # annotated override example (usually you need nothing)
 ci/
   pull-request-review.yml  # server-side review workflow (Gitea or GitHub)
-  scripts/                 # its helpers: trigger evaluation + review-text extraction
+  commands/
+    he9_pr_review.md       # server-only command the workflow runs
+  scripts/                 # trigger evaluation + review-text extraction
 ```
 
 The reviewer and responder skills both load `he9-review-contract`; the commands reference it too. Change the rubric in one place and both sides move together.

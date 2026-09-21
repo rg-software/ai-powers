@@ -25,8 +25,10 @@ Nothing else in the workflow is forge-specific.
 | Artifact | Source | Pinned |
 |----------|--------|--------|
 | Workflow + helper scripts | `AI_POWERS_REPO` (`ci/scripts/*.js`) | `AI_POWERS_REF` |
-| `he9_pr_review` command, review skills, contract | `AI_POWERS_REPO` | `AI_POWERS_REF` |
+| `ci/commands/he9_pr_review.md`, review skills, contract | `AI_POWERS_REPO` | `AI_POWERS_REF` |
 | Project conventions/specs/adapter | PR **base** SHA (via the checkout) | base SHA |
+
+The server-only review command lives at `ci/commands/`, beside the workflow that runs it, and is **not** installed on developer machines — the local installer ships only `commands/`. The workflow copies both sets into the runner's global commands directory.
 
 The workflow commits no project-local helper scripts: it ships its own (`ci/scripts/get-issue-data.js`, `ci/scripts/extract-review-text.js`), so adopting a project is one YAML file plus variables.
 

@@ -58,11 +58,26 @@ for skill in "${src_skills}"/*/; do
 done
 
 command_count=0
+shipped=()
 for file in "${src_commands}"/*.md; do
   [[ -e "${file}" ]] || continue
   cp -f "${file}" "${COMMANDS_DIR}/$(basename "${file}")"
   echo "installed command: $(basename "${file}")"
+  shipped+=("$(basename "${file}")")
   command_count=$((command_count + 1))
+done
+
+# Prune commands this repo no longer ships locally, so a renamed or relocated
+# command does not linger. Only touches files matching the he9_ prefix.
+for existing in "${COMMANDS_DIR}"/he9_*.md; do
+  [[ -e "${existing}" ]] || continue
+  name="$(basename "${existing}")"
+  keep=0
+  for s in "${shipped[@]}"; do [[ "${s}" == "${name}" ]] && keep=1; done
+  if [[ "${keep}" -eq 0 ]]; then
+    rm -f "${existing}"
+    echo "removed stale command: ${name}"
+  fi
 done
 
 echo
