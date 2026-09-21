@@ -82,6 +82,17 @@ for (const dir of [join(root, "commands"), join(root, "ci", "commands")]) {
   }
 }
 
+// --- pinned CI config -------------------------------------------------------
+const opencodeVersionPath = join(root, "ci", "opencode-version");
+if (!existsSync(opencodeVersionPath)) {
+  errors.push("ci/opencode-version is missing");
+} else {
+  const version = readFileSync(opencodeVersionPath, "utf8").trim();
+  if (!/^\d+\.\d+\.\d+/.test(version)) {
+    errors.push(`ci/opencode-version does not look like a version: "${version}"`);
+  }
+}
+
 if (errors.length > 0) {
   console.error("ai-powers validation failed:");
   for (const error of errors) console.error("  - " + error);

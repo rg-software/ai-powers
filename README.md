@@ -67,5 +67,9 @@ Nothing is required. The commands probe the standard layout (`openspec/conventio
 
 - Stop `npx skills` from managing the two forked skills, so it can never clobber them:
   `npx skills remove code-review-expert receiving-code-review -g`. Then install with this repo's script.
-- The global `~/.config/opencode/commands/` copy of `he9_pr_review.md` may diverge from a project copy; this repo is canonical once installed.
+- The global commands directory is managed by this repo's installer, which also prunes stale `he9_*` commands it no longer ships.
 - Restart opencode after installing; config and commands are loaded at startup.
+
+## License
+
+MIT — see `LICENSE`.
