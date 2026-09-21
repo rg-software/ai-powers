@@ -1,13 +1,26 @@
-// Example project adapter for the he9_* commands.
-// Copy to <project>/.opencode/powers.jsonc and adjust. All keys optional.
+// OPTIONAL project adapter for the he9_* commands.
+//
+// You usually do not need this file. The commands probe the standard layout and
+// infer the rest:
+//
+//   baseBranch : from origin/HEAD, else "main"
+//   conventions: openspec/conventions.md      (if present)
+//   specs      : openspec/specs/*/spec.md     (if present)
+//   debt       : docs/technical-debt.md       (if present)
+//   docs       : docs/*.md                    (if present)
+//   reviewDir  : .opencode/reviews            (created + gitignored on demand)
+//   tracker    : auto — configured forge MCP, else the git remote host, else ask
+//   contract   : he9-review-contract
+//
+// Create this file only to OVERRIDE one of those. Anything you omit is probed.
+// Nothing here is machine-specific (tokens and hosts come from env / the forge).
 {
-  "baseBranch": "develop",
-  "conventions": "openspec/conventions.md",
-  "specs": "openspec/specs/*/spec.md",
-  "debt": "docs/technical-debt.md",
-  "docs": ["docs/*.md"],
-  "reviewDir": ".opencode/reviews",
-  "tracker": "gitea",
-  "reviewBot": "ai-reviewer",
-  "contract": "he9-review-contract"
+  // "baseBranch": "develop",
+  // "conventions": "docs/conventions.md",
+  // "specs": "specs/*/spec.md",
+  // "debt": "docs/tech-debt.md",
+  // "docs": ["docs/*.md", "design/*.md"],
+  // "reviewDir": ".opencode/reviews",
+  // "tracker": "github",
+  // "contract": "he9-review-contract"
 }

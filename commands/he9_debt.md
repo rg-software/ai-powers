@@ -6,7 +6,7 @@ description: "Track technical debt: scan a scope, triage the backlog, or promote
 
 Goal: identify, track, and deliberately schedule technical debt — including documentation drift — without turning it into unfocused branch-wide refactoring.
 
-**Project adapter.** Read `.opencode/powers.jsonc` if present for `debt` (the backlog file), `specs`, `docs`, `conventions`, `tracker`.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `docs/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
 
 The mode is determined by the argument:
 

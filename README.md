@@ -21,7 +21,7 @@ docs/
   adapter.md               # per-project adapter: what goes in the repo vs the machine
   ci.md                    # CI review: forge support, variables, pinning, adoption
 examples/
-  powers.jsonc             # example project adapter
+  powers.jsonc             # annotated override example (usually you need nothing)
 ci/
   pull-request-review.yml  # server-side review workflow (Gitea or GitHub)
   scripts/                 # its helpers: trigger evaluation + review-text extraction
@@ -51,7 +51,7 @@ The default skills target is `~/.agents/skills`, the default slash commands targ
 
 ## Per project
 
-Each project commits a small adapter at `.opencode/powers.jsonc` describing where its conventions, specs, debt backlog, and tracker live. Commands read it and fall back to defaults. See `docs/adapter.md` and `examples/powers.jsonc`.
+Nothing is required. The commands probe the standard layout (`openspec/conventions.md`, `openspec/specs/*/spec.md`, `docs/technical-debt.md`, `docs/*.md`) and infer the base branch and tracker. A project that deviates from the standard layout can commit a small **optional** adapter at `.opencode/powers.jsonc` containing only the overrides. See `docs/adapter.md` and `examples/powers.jsonc`.
 
 ## CI
 

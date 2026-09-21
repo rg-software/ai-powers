@@ -6,7 +6,7 @@ description: "Push the current branch and open a pull request (auto-drafts title
 
 Goal: push the current feature branch and open a pull request.
 
-**Project adapter.** Read `.opencode/powers.jsonc` if present for `baseBranch`, `conventions`, `tracker`. Use the tracker's tooling (the Gitea MCP, or `gh` for GitHub).
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `docs/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing. Use the resolved tracker's tooling.
 
 If invoked as `he9_push_pr commit`, run the `he9_commit` workflow without asking first, then continue.
 

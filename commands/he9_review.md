@@ -6,7 +6,7 @@ description: "Code review / respond cycle: review the current branch locally, or
 
 Goal: improve code with a single review/respond cycle, including local maintainability refactoring where appropriate.
 
-**Project adapter.** Read `.opencode/powers.jsonc` if present. It supplies `baseBranch`, `conventions`, `specs`, `debt`, `docs`, `tracker`, `reviewBot`, `reviewDir`, `contract`. Defaults when a key is absent: `baseBranch` from `origin/HEAD` else `main`; `tracker` inferred from the remote; `reviewDir` = `.opencode/reviews`; `contract` = `he9-review-contract`. If a step needs a value with no default, ask the user once and offer to record it in the adapter.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides these defaults: `baseBranch` from `origin/HEAD` else `main`; `conventions` = `openspec/conventions.md`; `specs` = `openspec/specs/*/spec.md`; `debt` = `docs/technical-debt.md`; `docs` = `docs/*.md`; `reviewDir` = `.opencode/reviews`; `tracker` = auto (configured forge MCP, else git remote host, else ask); `contract` = `he9-review-contract`. Probe for paths; if one is absent, skip that step rather than guessing.
 
 The mode is determined by the argument:
 
@@ -49,7 +49,7 @@ The mode is determined by the argument:
 ## Mode: respond <PR number>
 
 1. If no PR number was supplied, list the open PRs and ask the user to choose one.
-2. Find and read the most recent review comment: prefer one carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it), and fall back to a comment authored by `{{reviewBot}}` only when no marked comment exists. If there is none, inform the user and stop.
+2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
 4. When a finding is maintainability or architecture work, classify it as fix-in-branch-now, or defer into the debt backlog / a focused issue / a spec change.
 5. Save the response under `{{reviewDir}}/<UTC timestamp>-pr-<number>/response.md` (gitignored, as in local mode).

@@ -51,11 +51,13 @@ The workflow commits no project-local helper scripts: it ships its own (`ci/scri
 
 ## Reviewer identity
 
-The reviewer is **not** matched by user name. Every posted review begins with the marker `<!-- he9-reviewer:v1 -->`, and `he9_review respond` matches that marker first, falling back to the adapter's `reviewBot` only when no marked comment exists. Rename the token's user, or post with a different token, and the cycle still works.
+The reviewer is **not** matched by user name and is not configurable. Every posted review begins with the marker `<!-- he9-reviewer:v1 -->`, and `he9_review respond` matches that marker. Rename the token's user, or post with a different token, and the cycle still works.
+
+`AI_REVIEW_MENTION` is a separate concept: it is the text a *human* writes in a comment to trigger a manual review (default `@ai-reviewer`). It is a plain substring test and need not name a real user.
 
 ## Adopting in a new project
 
 1. Copy `ci/pull-request-review.yml` to `.gitea/workflows/` or `.github/workflows/`.
 2. Set the variables and secrets above on the forge.
-3. Add the project adapter `.opencode/powers.jsonc` (see `docs/adapter.md`).
+3. (Optional) Add a project adapter `.opencode/powers.jsonc` only if the project deviates from the standard layout — see `docs/adapter.md`.
 4. On each developer machine, run this repo's `install/install.ps1` (or `.sh`) to get the commands and skills.
