@@ -1,0 +1,13 @@
+// Example project adapter for the he9_* commands.
+// Copy to <project>/.opencode/powers.jsonc and adjust. All keys optional.
+{
+  "baseBranch": "develop",
+  "conventions": "openspec/conventions.md",
+  "specs": "openspec/specs/*/spec.md",
+  "debt": "docs/technical-debt.md",
+  "docs": ["docs/*.md"],
+  "reviewDir": ".opencode/reviews",
+  "tracker": "gitea",
+  "reviewBot": "ai-reviewer",
+  "contract": "he9-review-contract"
+}

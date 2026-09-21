@@ -1,0 +1,11 @@
+# Text files are LF in the repository and in the working tree, so the shell
+# installer stays executable on Linux/macOS and diffs are stable across platforms.
+* text=auto eol=lf
+
+# Windows-native scripts may be checked out with CRLF.
+*.ps1 text eol=crlf
+
+# Never treat these as text.
+*.png binary
+*.jpg binary
+*.ico binary

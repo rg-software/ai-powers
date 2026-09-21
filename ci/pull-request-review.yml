@@ -1,0 +1,235 @@
+# Example: server-side PR review workflow (Gitea Actions / act-compatible).
+# Derived from the working continue-responder.yml in semaphore-game; the only
+# substantive change is that review commands, skills, and the contract are
+# loaded from ai-powers at a PINNED COMMIT instead of the upstream skill repo.
+#
+# SECURITY INVARIANT: runs under `pull_request_target`, so it is loaded from the
+# PR base branch and executes with base-context secrets even for untrusted PRs.
+# It must NEVER execute, build, or run code from the PR checkout. Only trusted,
+# pinned artifacts are executed: base-SHA scripts, ai-powers at AI_POWERS_REF,
+# and tools from the registry. Review any added step against this rule.
+
+name: AI PR Reviewer
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    environment: continue-actions
+    steps:
+      - name: Initial checkout for scripts
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Read trigger script
+        id: read_script_content
+        run: |
+          echo "script_data<<EOF" >> $GITHUB_OUTPUT
+          cat ./.gitea/workflows/scripts/get-issue-data.js >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Evaluate triggers and fetch PR data
+        id: setupenv
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: ${{ steps.read_script_content.outputs.script_data }}
+
+      # Untrusted: checked out only so the reviewer can READ the diff. No step
+      # below may execute anything from this workspace.
+      - name: Checkout target code
+        if: steps.setupenv.outputs.hit == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.setupenv.outputs.checkoutRef }}
+          fetch-depth: 1
+
+      - name: Fetch base and head
+        if: steps.setupenv.outputs.hit == 'true'
+        run: |
+          git fetch origin "${{ steps.setupenv.outputs.prHeadRef }}" --depth=50
+          git fetch origin "${{ steps.setupenv.outputs.prBaseSha }}" --depth=50
+
+      - name: Prepare trusted review resources
+        id: trusted
+        if: steps.setupenv.outputs.hit == 'true'
+        env:
+          # Pin to a reviewed commit of ai-powers. Update deliberately.
+          AI_POWERS_REPO: ${{ vars.AI_POWERS_REPO }}   # owner/ai-powers
+          AI_POWERS_REF: ${{ vars.AI_POWERS_REF }}     # commit SHA
+        run: |
+          mkdir -p "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
+
+          git clone --filter=blob:none --no-checkout "https://github.com/${AI_POWERS_REPO}.git" \
+            "$HOME/.gitea/trusted/ai-powers"
+          git -C "$HOME/.gitea/trusted/ai-powers" checkout --detach "${AI_POWERS_REF}"
+
+          # Commands -> global commands dir (always loaded, even with project config disabled).
+          cp "$HOME/.gitea/trusted/ai-powers/commands/"*.md "$HOME/.config/opencode/commands/"
+
+          # Skills (reviewer, responder, contract) -> runner-global skills dir.
+          cp -R "$HOME/.gitea/trusted/ai-powers/skills/." "$HOME/.agents/skills/"
+
+          # Sanity: the contract and reviewer must be present.
+          [ -f "$HOME/.agents/skills/he9-review-contract/SKILL.md" ]
+          [ -f "$HOME/.agents/skills/code-review-expert/SKILL.md" ]
+          [ -f "$HOME/.config/opencode/commands/he9_pr_review.md" ]
+
+          # Locked-down permissions for the review agent (generated in-workflow,
+          # never read from the PR checkout).
+          cat > "$HOME/.gitea/trusted/opencode-ci.json" <<'EOF'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "permission": {
+              "*": "allow",
+              "bash": {
+                "*": "deny",
+                "git *": "allow",
+                "git diff*": "allow",
+                "git show*": "allow",
+                "git status*": "allow",
+                "git log*": "allow",
+                "git ls-files*": "allow",
+                "git ls-tree*": "allow",
+                "git cat-file*": "allow",
+                "git rev-parse*": "allow",
+                "git name-rev*": "allow",
+                "git push*": "deny",
+                "git fetch*": "deny",
+                "git pull*": "deny",
+                "git remote*": "deny",
+                "git add*": "deny",
+                "git commit*": "deny",
+                "git checkout*": "deny",
+                "git reset*": "deny",
+                "rg *": "allow",
+                "grep *": "allow",
+                "ls *": "allow",
+                "node *": "deny",
+                "echo *": "deny",
+                "env *": "deny",
+                "printenv *": "deny",
+                "export *": "deny",
+                "curl *": "deny",
+                "wget *": "deny",
+                "nc *": "deny"
+              },
+              "webfetch": "deny",
+              "websearch": "deny",
+              "edit": "deny",
+              "write": "deny",
+              "question": "deny"
+            }
+          }
+          EOF
+          node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))"
+          echo "opencode_config=$HOME/.gitea/trusted/opencode-ci.json" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        if: steps.setupenv.outputs.hit == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup OpenCode CLI
+        if: steps.setupenv.outputs.hit == 'true'
+        run: npm i -g opencode-ai@1.18.15
+
+      - name: Generate PR diff
+        if: steps.setupenv.outputs.hit == 'true'
+        run: |
+          git diff "${{ steps.setupenv.outputs.prBaseSha }}"..."${{ steps.setupenv.outputs.prHeadSha }}" > pr-diff.txt
+
+      - name: Run analysis
+        if: steps.setupenv.outputs.hit == 'true'
+        id: analyze
+        env:
+          COMMENT_BODY: ${{ steps.setupenv.outputs.commentBody }}
+          ENTITY_NUMBER: ${{ steps.setupenv.outputs.entityNumber }}
+          ENTITY_TITLE: ${{ steps.setupenv.outputs.entityTitle }}
+          ENTITY_BODY: ${{ steps.setupenv.outputs.entityBody }}
+          PRHEADSHA: ${{ steps.setupenv.outputs.prHeadSha }}
+          PRBASESHA: ${{ steps.setupenv.outputs.prBaseSha }}
+          SHAS: ${{ steps.setupenv.outputs.prCommitsShas }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AI_MODEL_NAME: ${{ vars.AI_MODEL_NAME }}
+          OPENCODE_CONFIG: ${{ steps.trusted.outputs.opencode_config }}
+          OPENCODE_DISABLE_AUTOUPDATE: "1"
+          OPENCODE_DISABLE_PROJECT_CONFIG: "1"
+        run: |
+          DIFF_CONTENT="(no diff available)"
+          if [ -f pr-diff.txt ]; then
+            DIFF_CONTENT=$(head -c 50000 pr-diff.txt)
+            if [ "$(wc -c < pr-diff.txt)" -gt 50000 ]; then
+              DIFF_CONTENT="${DIFF_CONTENT}
+          ... [diff truncated at 50000 characters]"
+            fi
+          fi
+
+          PROMPT="### PULL REQUEST DATA
+          Number: ${ENTITY_NUMBER}
+          Title: ${ENTITY_TITLE}
+          Description: ${ENTITY_BODY}
+          Head SHA: ${PRHEADSHA}
+          Base SHA: ${PRBASESHA}
+          Commits: ${SHAS}
+
+          ### CODE DIFF
+          \`\`\`diff
+          ${DIFF_CONTENT}
+          \`\`\`
+
+          ### TRIGGERING COMMAND
+          ${COMMENT_BODY}"
+
+          set +e
+          opencode run \
+            --command he9_pr_review \
+            --model "openrouter/${AI_MODEL_NAME}" \
+            --auto \
+            --format json \
+            -- "$PROMPT" \
+            > /tmp/review-events.jsonl 2> /tmp/opencode-run.err
+          EXIT_CODE=$?
+          set -e
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "opencode run failed with exit code $EXIT_CODE"
+            tail -n 50 /tmp/opencode-run.err || true
+            tail -n 50 /tmp/review-events.jsonl || true
+            exit $EXIT_CODE
+          fi
+
+          node "$HOME/.gitea/trusted/extract-review-text.js" < /tmp/review-events.jsonl > /tmp/review.txt
+
+          EOF_DELIMITER="END_OF_REVIEW_OUTPUT_$(date +%s)"
+          echo "review_output<<$EOF_DELIMITER" >> "$GITHUB_OUTPUT"
+          cat /tmp/review.txt >> "$GITHUB_OUTPUT"
+          printf '\n' >> "$GITHUB_OUTPUT"
+          echo "$EOF_DELIMITER" >> "$GITHUB_OUTPUT"
+
+      - name: Post response
+        if: steps.setupenv.outputs.hit == 'true'
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ steps.setupenv.outputs.entityNumber }}
+          RESULT: ${{ steps.analyze.outputs.review_output }}
+        with:
+          github-token: ${{ secrets.AIR_GITEA_API_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+              body: process.env.RESULT || "(no output from AI model)"
+            });
