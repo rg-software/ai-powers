@@ -246,10 +246,28 @@ Review: <ref to the review, e.g. PR #123 comment / local report>
 
 A deferred finding lands in the project's debt backlog — the adapter's `debt` file, conventionally `openspec/technical-debt.md` — with:
 
-- **Priority** = the same `P` scale as severity. Do not invent a second one.
-- **Level** = the backlog's own health scale (`🟢/🟡/🔴/⚪`), which describes state, not severity.
-- **Scope** = the finding's `path:line` (or the affected area).
+- **Priority** = the severity *class* of the deficiency, on this same `P` scale. Do not invent a second one. `P0` is excluded: a P0 is fixed, never deferred.
+- **Scope** = the finding's `path:line`, or the affected area. This is a *location* — the `scope` axis above (`in-touched`/`adjacent`/`project-wide`) is change-relative and does not apply to a backlog item.
 - The finding's `id` and the review reference, so the deferral is traceable.
+
+Because a backlog item describes code that already exists rather than a change, the severity wording is read **without its change-relative clauses**. The class and the ordering carry over; the "introduced by this change" framing does not:
+
+| Priority | reading for existing code |
+|----------|---------------------------|
+| `P1` | will cause defects or block work soon |
+| `P2` | the maintainability / architecture / docs / tests class, with no current behavioral impact |
+| `P3` | polish |
+
+### Dispositions in a debt scan
+
+`he9_debt scan` verifies candidate items with the disposition vocabulary above, read as:
+
+| disposition | meaning for a candidate debt item |
+|-------------|-----------------------------------|
+| `accepted` | confirmed real; record it |
+| `rejected` | not an issue; state why and drop it |
+| `already-addressed` | already in the backlog, or already fixed — link the `TD-###` instead of adding a duplicate |
+| `deferred` | real, but not worth recording now |
 
 ### Removal scales
 

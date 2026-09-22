@@ -38,6 +38,7 @@ Use `receiving-code-review` instead when the task is to **respond** to a review,
 ### 1) Preflight context
 
 - Scope the change: `git status -sb`, `git diff --stat`, `git diff` (or the given base/head SHAs and diff).
+- **If asked to review a tree rather than a change** (a codebase audit): there is no diff. Enumerate files with `git ls-files <scope>` and apply the same checklists. Grade against the adapter's conventions and specs — with no change, a defect cannot be attributed to one, so cite the rule it violates instead.
 - Edge cases:
   - **No changes**: say so and ask for a range.
   - **Large diff (>500 lines)**: summarize by file first, then review in batches by module.
