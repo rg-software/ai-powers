@@ -77,3 +77,14 @@ Notes:
 - `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `bash` to scope the target with `git`.
 
 A ready-to-copy file is at `examples/reviewer-agent.jsonc`. Without this agent `he9_review` cannot start; it names the prerequisite and offers a self-review fallback instead of failing with a raw subagent-not-found error.
+
+## The debt document is the action log
+
+Both flows converge on the resolved `debt` file, which is the single log of outstanding work:
+
+- **Feeds it:** `he9_debt scan` records new debt; `he9_review` writes the findings whose action is `defer-debt`, each carrying the finding id and the review that produced it.
+- **Maintains it:** `he9_debt triage` dedupes, clarifies, re-prioritises, advances status, and re-checks entries against the code for staleness.
+- **Drains it:** `he9_debt promote <item>` turns one entry into a focused issue or spec change.
+- **Never enters it:** `fix-now` findings — those are the branch's work, not deferred.
+
+Both flows share one shape: **identify** with the separate `reviewer` party, **dispose** with the responder party, then **act**. The reviewer party is what makes a list doubly-checked rather than self-confirmed — a scan that both finds and approves its own findings is the weakest possible review.

@@ -55,18 +55,18 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
 
 8. Recommend what to address now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
 
-9. For real maintainability or architecture findings that should not be addressed now, recommend recording them in the debt backlog or promoting them into a focused issue / spec change.
+9. Act on the dispositions. For every `defer-debt` finding, **write an entry into the resolved `debt` document**, using that document's own item template and carrying the finding `id` and this review as its reference; grade it per `he9-review-contract` → "Mapping to the debt backlog". For `promote-issue` / `promote-change` findings, recommend the focused issue or spec change rather than creating it here — promotion is a deliberate step. `fix-now` findings are this branch's work and are not recorded.
 
 10. Ask the user how to proceed:
     - **A**: fix all recommended issues.
     - **B**: choose issues to fix.
-    - **C**: defer selected maintainability issues to the backlog.
+    - **C**: defer selected maintainability issues into the resolved `debt` document.
 
 ## Mode: respond <PR number>
 
 1. If no PR number was supplied, list the open PRs through the resolved `tracker` and ask the user to choose one.
 2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
-4. When a finding is maintainability or architecture work, classify it as fix-in-branch-now, or defer into the debt backlog / a focused issue / a spec change.
+4. Act on the dispositions: write every `defer-debt` finding into the resolved `debt` document (item template, finding `id`, this review as its reference), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating them here.
 5. Save the response under the resolved `reviewDir` in `<UTC timestamp>-respond-pr-<number>/response.md` (gitignored, as in review mode).
-6. Ask whether to fix the in-branch issues now, or defer the selected maintainability findings to the backlog.
+6. Ask whether to fix the in-branch issues now, or defer the selected findings into the resolved `debt` document.

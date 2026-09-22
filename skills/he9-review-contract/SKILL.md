@@ -72,7 +72,7 @@ Tie-break when two reviewers disagree: *can a follow-up patch undo it?* If it ca
 
 - A defect **introduced or aggravated by this change** with no current behavioral impact: maintainability or architecture (duplication, a broken responsibility boundary, a testability regression, drift from the project's conventions or specs), a doc this change made wrong, or missing test coverage for behavior it added.
 
-**Action:** fix in-branch if `in-touched` and cheap; otherwise defer to the debt backlog.
+**Action:** fix in-branch if `in-touched` and cheap; otherwise defer to the debt document.
 
 ### P3 - Low
 
@@ -122,7 +122,7 @@ Project rules (e.g. "refactor only what the task touches") are scope rules. They
 ## Action
 
 - `fix-now` - address in this branch before merge.
-- `defer-debt` - record in the project's technical-debt backlog.
+- `defer-debt` - write an entry into the project's debt document (the resolved `debt` file).
 - `promote-issue` - spin up a focused tracked issue.
 - `promote-change` - spin up a spec/design change (behavior or multi-subsystem).
 - `wontfix` - explicit decision not to act. Must state why.
@@ -153,7 +153,7 @@ Every finding gets exactly one disposition, keyed by finding id:
 
 - `accepted` - I agree; fixed at `<ref>` or will be.
 - `rejected` - technically incorrect here; state the reason and the evidence (test, spec, code).
-- `deferred` - agreed but out of scope; state the backlog id or issue.
+- `deferred` - agreed but out of scope; state the debt entry id (`TD-###`) or the issue.
 - `already-addressed` - covered by an existing change; cite it.
 
 A response with a finding missing a disposition is incomplete. This is the artifact the responder's skill was missing: a checkable, 1:1 mapping back to the review.
@@ -213,7 +213,7 @@ Contract: he9-review-contract
 ### P3 - Low        (summarize; list individually only if few)
 
 ## Deferred
-- R-n -> defer-debt: one-line summary (for the backlog)
+- R-n -> defer-debt: one-line summary (for the debt document)
 
 ## Not reviewed
 Explicit list of anything in scope you did not assess, and why — including any
@@ -244,13 +244,13 @@ Review: <ref to the review, e.g. PR #123 comment / local report>
 
 ## Mapping to the debt backlog
 
-A deferred finding lands in the project's debt backlog — the adapter's `debt` file, conventionally `openspec/technical-debt.md` — with:
+A deferred finding lands in the project's **debt document** — the resolved `debt` file, default `openspec/technical-debt.md` — with:
 
 - **Priority** = the severity *class* of the deficiency, on this same `P` scale. Do not invent a second one. `P0` is excluded: a P0 is fixed, never deferred.
-- **Scope** = the finding's `path:line`, or the affected area. This is a *location* — the `scope` axis above (`in-touched`/`adjacent`/`project-wide`) is change-relative and does not apply to a backlog item.
+- **Scope** = the finding's `path:line`, or the affected area. This is a *location* — the `scope` axis above (`in-touched`/`adjacent`/`project-wide`) is change-relative and does not apply to a debt entry.
 - The finding's `id` and the review reference, so the deferral is traceable.
 
-Because a backlog item describes code that already exists rather than a change, the severity wording is read **without its change-relative clauses**. The class and the ordering carry over; the "introduced by this change" framing does not:
+Because a debt entry describes code that already exists rather than a change, the severity wording is read **without its change-relative clauses**. The class and the ordering carry over; the "introduced by this change" framing does not:
 
 | Priority | reading for existing code |
 |----------|---------------------------|
@@ -266,7 +266,7 @@ Because a backlog item describes code that already exists rather than a change, 
 |-------------|-----------------------------------|
 | `accepted` | confirmed real; record it |
 | `rejected` | not an issue; state why and drop it |
-| `already-addressed` | already in the backlog, or already fixed — link the `TD-###` instead of adding a duplicate |
+| `already-addressed` | already in the debt document, or already fixed — link the `TD-###` instead of adding a duplicate |
 | `deferred` | real, but not worth recording now |
 
 ### Removal scales
