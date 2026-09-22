@@ -6,7 +6,7 @@ description: "Push the current branch and open a pull request (auto-drafts title
 
 Goal: push the current feature branch and open a pull request.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (from `origin/HEAD`, else `main`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Use the resolved tracker's tooling.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Use the resolved tracker's tooling.
 
 ## Argument
 

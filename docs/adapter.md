@@ -6,7 +6,7 @@ The `he9_*` commands need to know a project's base branch, where its conventions
 
 | Input | Default | Override |
 |-------|---------|----------|
-| `baseBranch` | `origin/HEAD`, else `main` | `baseBranch` |
+| `baseBranch` | `origin/HEAD`; ask if unset | `baseBranch` |
 | `conventions` | `openspec/conventions.md` if present | `conventions` |
 | `specs` | `openspec/specs/*/spec.md` if present | `specs` |
 | `debt` | `openspec/technical-debt.md` if present | `debt` |
@@ -16,6 +16,8 @@ The `he9_*` commands need to know a project's base branch, where its conventions
 | `contract` | `he9-review-contract` | `contract` |
 
 A probed path that does not exist is **skipped**, never guessed: if a project has no specs directory, the steps that would read specs simply do not run, and the command says so.
+
+`baseBranch` is different, because its fallback is not a path. `origin/HEAD` is a **local symbolic ref** (`refs/remotes/origin/HEAD`) that `git clone` creates — so it is absent in a repo set up with `git init` + `git remote add`, in a bare/mirror clone, or when nobody has run `git remote set-head origin -a`; it can also be stale if the remote's default branch changed. A wrong base branch silently produces a wrong diff, and in `he9_push_pr` a PR against the wrong target, so when neither the adapter nor `origin/HEAD` yields one the commands **ask instead of guessing**.
 
 ## The adapter file (optional)
 

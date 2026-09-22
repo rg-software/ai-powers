@@ -6,7 +6,7 @@ description: "Start a task: pick a tracked issue, a spec change, or an ad-hoc ta
 
 Goal: identify the current task and prepare a feature branch for it.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (from `origin/HEAD`, else `main`), `conventions` (`openspec/conventions.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
 
 ## Argument
 
