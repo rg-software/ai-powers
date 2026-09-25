@@ -1,12 +1,19 @@
 ---
-description: "Track technical debt: scan a scope for debt, triage the debt document, or promote an item into focused work"
+description: "Track internal technical debt: scan a scope for debt, or promote an entry to the external tracker"
 ---
 
 # Technical debt workflow
 
-Goal: identify, track, and deliberately schedule technical debt — including documentation drift — without turning it into unfocused branch-wide refactoring. This is the workflow for improving an existing codebase; `he9_review` is the workflow for reviewing a change.
+Goal: identify and record internal technical debt — including documentation drift — without turning it into unfocused branch-wide refactoring and without polluting the public tracker. This is the workflow for improving an existing codebase; `he9_review` is the workflow for reviewing a change.
 
-Both flows have the same shape: **identify** with a separate reviewer party, **dispose** with the responder party, then **act** — fix now, defer into the debt document, or promote into focused work. The reviewer party is what makes the list doubly-checked instead of self-confirmed.
+Two backlogs, split by **audience**:
+
+- **Internal** — the resolved `debt` document, committed and developer-facing. Debt found locally (by a developer, a review, or a scan) lands here. Entries are almost always worked from here, not filed as tracker issues.
+- **External** — the resolved `tracker`. Issues reported by clients or users, or work that genuinely concerns outsiders, live there.
+
+`promote` is the one-way bridge: escalate an internal entry to the external tracker when outsiders turn out to care. Most debt never needs it — it is picked up with `he9_start` and fixed directly.
+
+A scan is doubly-checked: a separate reviewer party finds candidates, the responder party verifies and disposes of them, and the human arbitrates the exceptions. A list that both finds and approves its own findings is the weakest possible review.
 
 **Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `docs` (`docs/*.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
 
@@ -14,9 +21,8 @@ Both flows have the same shape: **identify** with a separate reviewer party, **d
 
 `$ARGUMENTS` selects the mode:
 
-- `scan <scope>`: find debt in a scope, verify it in a second pass, and record it.
-- `triage` (default, or empty): maintain the debt document and re-check it for staleness.
-- `promote <item-id>`: turn one entry into a focused issue or spec change.
+- `scan <scope>`: find debt in a scope, verify it in a second pass, arbitrate the exceptions, and record it. This is the default when the argument is empty.
+- `promote <item-id>`: escalate one entry to the external tracker and remove it from the internal document.
 
 ## Grading
 
@@ -45,28 +51,28 @@ Do not invent a second scale, and do not add a second axis. An undocumented syst
    > Do not record anything. Report candidates only.
 
 3. **Dispose.** Verify each candidate yourself against the code, using the `receiving-code-review` discipline, and give every one a disposition from `he9-review-contract` → "Dispositions in a debt scan": `accepted`, `rejected`, `already-addressed`, `deferred`. `already-addressed` is duplicate detection — match against the debt document before adding anything, and link the existing `TD-###` rather than creating a second copy. A reviewer-party candidate you cannot reproduce is `rejected`, with the reason.
-4. Write the **accepted** entries into the resolved debt document, using that document's own item template. Do not restate the template here.
-5. Report candidates grouped by disposition: what was recorded, and what was rejected and why. Then ask whether any entry should be promoted now.
+4. **Arbitrate with the human — exceptions only.** Present the candidate list with its point-by-point response, then ask the human to confirm or overturn the items that need judgement:
+   - every `rejected` and `deferred` candidate, with the reason — a false rejection is lossy and invisible, so it gets a second pair of eyes;
+   - every `P1` candidate;
+   - any candidate whose disposition you are unsure of.
 
-## Mode: triage
+   Do not record anything until this step is done. Routine `accepted` items need no discussion.
+5. Write the **accepted** entries into the resolved debt document, using that document's own item template. Do not restate the template here. Each entry must be **self-contained** (see `he9-review-contract` → "Mapping to the debt backlog"): inline the evidence, symptom, `file:line`, and rationale, because no review report is kept.
+6. **Gardening pass over the whole document.** This is the maintenance that used to be a separate mode, and it does not implement code changes:
+   - re-check each entry against the code and mark one that no longer holds `resolved` for removal;
+   - merge duplicates and group closely related entries;
+   - split oversized entries, clarify scope and impact, and re-check Priority.
 
-This maintains the debt document. It is the only mode that sweeps the whole document, and it does not implement code changes.
-
-1. Read the resolved debt document.
-2. **Staleness pass.** Re-check each entry against the code. If an entry no longer holds — the code changed, the system was removed, the gap closed — mark it `resolved` for removal on the next cleanup.
-3. **Maintenance.** Merge duplicates, split oversized entries, clarify scope and impact, adjust Priority, and advance status.
-4. Report the proposed or applied refinements, separating "no longer true" from "still true, tidied".
-5. Ask whether any entry should be promoted.
+   An entry whose fix has already merged should have been removed by the fixer on that branch; if one lingers, remove it here.
+7. Report what was recorded and the gardening outcome. Then ask whether any entry should be picked up now (via `he9_start <TD-id>`, the normal path) or promoted (escalation, rare).
 
 ## Mode: promote <item-id>
 
+Escalation only. Picking up an entry to fix it is `he9_start <TD-id>`; this mode is for when an internal item turns out to concern outsiders.
+
 1. Find the entry in the resolved debt document.
 2. **Re-check that it is still true** against the code. If it is already fixed, mark it `resolved` instead of promoting it.
-3. Summarize the entry and its recommended direction to the user.
-4. Choose the path:
-   - a tracked issue if it is a bounded implementation task;
-   - a spec/design change if it affects behavior contracts, architecture, or multiple subsystems;
-   - for doc drift, fix the doc directly when straightforward — apply spec fixes through the appropriate change command/skill rather than editing the specs tree by hand.
-5. If creating an issue: list existing issues through the resolved `tracker` first and avoid duplicates.
-6. If creating a change: use the appropriate change-proposal command/skill.
-7. Report back and update the entry's status in the resolved debt document.
+3. Summarize the entry and tell the user you are escalating it to the external tracker; confirm before acting.
+4. List existing issues through the resolved `tracker` first and avoid duplicates.
+5. Create the issue. It must stand alone for its external audience: do not leak internal `TD-###` ids or internal-only context into the body. Keep provenance in the commit that removes the entry, not in the public issue.
+6. On success, **remove the entry from the debt document** in the same change, so the issue and the document never track the same item twice. Note the promotion in the commit message.

@@ -6,7 +6,7 @@ description: "Code review / respond cycle: review a target locally (branch, unco
 
 Goal: improve code with a single review/respond cycle, including local maintainability refactoring where appropriate.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `reviewDir` (`.opencode/reviews`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
 
 ## Argument
 
@@ -39,34 +39,25 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
    >
    > This is non-interactive: skip the skill's "hand-off" step and do not ask how to proceed.
 
-3. Create the run folder and save the review as `review.md`:
-   - Root: the resolved `reviewDir`.
-   - Run folder: `<UTC timestamp>-<target>-<current branch>` (e.g. `20260921T1430-worktree-fix-drag`).
-   - Ensure the review root is gitignored: if it is not covered by an existing rule, add it to the project's `.gitignore`.
-   - Do not commit anything under the review root.
+3. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
 
-4. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
+4. Produce the response in the contract's responder output format.
 
-5. Produce the response in the contract's responder output format.
+5. Present both in full as rendered markdown: the review, then the response. Do not summarize or omit anything. Reports are **print-only** — do not persist them; the durable artifact is the code change and any debt entry, not the review.
 
-6. Save the response as `response.md` alongside `review.md` in the same run folder.
+6. Recommend what to address now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
 
-7. Read both files and print their full contents as rendered markdown. Do not summarize or omit anything. Then state the run folder path so the pair can be found later.
+7. Act on the dispositions. For every `defer-debt` finding, **write a self-contained entry into the resolved `debt` document**, using that document's own item template and grading it per `he9-review-contract` → "Mapping to the debt backlog": inline the evidence, symptom, and `file:line`, because the review is not kept (the finding `id` may remain as provenance only). For `promote-issue` / `promote-change` findings, recommend the focused issue or spec change rather than creating it here — promotion is a deliberate step. `fix-now` findings are this branch's work and are not recorded.
 
-8. Recommend what to address now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
-
-9. Act on the dispositions. For every `defer-debt` finding, **write an entry into the resolved `debt` document**, using that document's own item template and carrying the finding `id` and this review as its reference; grade it per `he9-review-contract` → "Mapping to the debt backlog". For `promote-issue` / `promote-change` findings, recommend the focused issue or spec change rather than creating it here — promotion is a deliberate step. `fix-now` findings are this branch's work and are not recorded.
-
-10. Ask the user how to proceed:
-    - **A**: fix all recommended issues.
-    - **B**: choose issues to fix.
-    - **C**: defer selected maintainability issues into the resolved `debt` document.
+8. Ask the user how to proceed:
+   - **A**: fix all recommended issues.
+   - **B**: choose issues to fix.
+   - **C**: defer selected maintainability issues into the resolved `debt` document.
 
 ## Mode: respond <PR number>
 
 1. If no PR number was supplied, list the open PRs through the resolved `tracker` and ask the user to choose one.
 2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
-4. Act on the dispositions: write every `defer-debt` finding into the resolved `debt` document (item template, finding `id`, this review as its reference), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating them here.
-5. Save the response under the resolved `reviewDir` in `<UTC timestamp>-respond-pr-<number>/response.md` (gitignored, as in review mode).
-6. Ask whether to fix the in-branch issues now, or defer the selected findings into the resolved `debt` document.
+4. Act on the dispositions: write every `defer-debt` finding into the resolved `debt` document as a self-contained entry (item template; inline the evidence, symptom, and `file:line`; the finding `id` may remain as provenance only), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating them here.
+5. Ask whether to fix the in-branch issues now, or defer the selected findings into the resolved `debt` document.

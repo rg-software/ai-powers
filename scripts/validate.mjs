@@ -17,7 +17,6 @@ const KNOWN_INPUT_KEYS = new Set([
   "specs",
   "debt",
   "docs",
-  "reviewDir",
   "tracker",
   "contract",
 ]);

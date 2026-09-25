@@ -8,7 +8,6 @@
 //   specs      : openspec/specs/*/spec.md     (if present)
 //   debt       : openspec/technical-debt.md   (if present)
 //   docs       : docs/*.md                    (if present)
-//   reviewDir  : .opencode/reviews            (created + gitignored on demand)
 //   tracker    : auto — configured forge MCP, else the git remote host, else ask
 //   contract   : he9-review-contract
 //
@@ -20,7 +19,6 @@
   // "specs": "specs/*/spec.md",
   // "debt": "openspec/tech-debt.md",
   // "docs": ["docs/*.md", "design/*.md"],
-  // "reviewDir": ".opencode/reviews",
   // "tracker": "github",
   // "contract": "he9-review-contract"
 }

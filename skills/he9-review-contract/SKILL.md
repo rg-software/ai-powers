@@ -244,11 +244,11 @@ Review: <ref to the review, e.g. PR #123 comment / local report>
 
 ## Mapping to the debt backlog
 
-A deferred finding lands in the project's **debt document** — the resolved `debt` file, default `openspec/technical-debt.md` — with:
+A deferred finding lands in the project's **debt document** — the resolved `debt` file, default `openspec/technical-debt.md`. This is an **internal backlog**, developer-facing: local findings are fixed from here rather than filed in the external tracker (`he9_debt promote` is the rare one-way escalation, and it removes the entry). The document is committed, so an entry must stand on its own. Every entry:
 
+- **Is self-contained.** Inline the evidence, symptom, `path:line`, and rationale. The review that produced it is **not kept**; a reference to a report that no longer exists is not traceability. The finding `id` may remain as provenance, nothing more.
 - **Priority** = the severity *class* of the deficiency, on this same `P` scale. Do not invent a second one. `P0` is excluded: a P0 is fixed, never deferred.
 - **Scope** = the finding's `path:line`, or the affected area. This is a *location* — the `scope` axis above (`in-touched`/`adjacent`/`project-wide`) is change-relative and does not apply to a debt entry.
-- The finding's `id` and the review reference, so the deferral is traceable.
 
 Because a debt entry describes code that already exists rather than a change, the severity wording is read **without its change-relative clauses**. The class and the ordering carry over; the "introduced by this change" framing does not:
 

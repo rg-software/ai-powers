@@ -11,7 +11,6 @@ The `he9_*` commands need to know a project's base branch, where its conventions
 | `specs` | `openspec/specs/*/spec.md` if present | `specs` |
 | `debt` | `openspec/technical-debt.md` if present | `debt` |
 | `docs` | `docs/*.md` if present | `docs` |
-| `reviewDir` | `.opencode/reviews` (created and gitignored on demand) | `reviewDir` |
 | `tracker` | auto: a configured forge MCP, else the git remote host, else ask | `tracker` |
 | `contract` | `he9-review-contract` | `contract` |
 
@@ -78,13 +77,17 @@ Notes:
 
 A ready-to-copy file is at `examples/reviewer-agent.jsonc`. Without this agent `he9_review` cannot start; it names the prerequisite and offers a self-review fallback instead of failing with a raw subagent-not-found error.
 
-## The debt document is the action log
+## Two backlogs
 
-Both flows converge on the resolved `debt` file, which is the single log of outstanding work:
+The commands keep two separate backlogs, split by **audience**:
 
-- **Feeds it:** `he9_debt scan` records new debt; `he9_review` writes the findings whose action is `defer-debt`, each carrying the finding id and the review that produced it.
-- **Maintains it:** `he9_debt triage` dedupes, clarifies, re-prioritises, advances status, and re-checks entries against the code for staleness.
-- **Drains it:** `he9_debt promote <item>` turns one entry into a focused issue or spec change.
-- **Never enters it:** `fix-now` findings — those are the branch's work, not deferred.
+- **Internal** — the resolved `debt` document (default `openspec/technical-debt.md`), committed and developer-facing. Local discovery lands here: `he9_debt scan` records new entries, and `he9_review` writes the findings whose action is `defer-debt`. Entries are self-contained (they do not rely on a review report being kept) and are worked via `he9_start <TD-id>`, then removed once the fixing branch or change merges.
+- **External** — the resolved `tracker`, for issues reported by clients or users, or work that genuinely concerns outsiders.
 
-Both flows share one shape: **identify** with the separate `reviewer` party, **dispose** with the responder party, then **act**. The reviewer party is what makes a list doubly-checked rather than self-confirmed — a scan that both finds and approves its own findings is the weakest possible review.
+The bridge between them is **one-way**: `he9_debt promote <item>` escalates an internal entry to the tracker when outsiders turn out to care, and removes it from the internal document so the two never track the same item. Most debt never needs promoting — it is fixed directly from the internal backlog, which keeps low-value local findings out of the public tracker.
+
+Both flows share one shape: **identify** with the separate `reviewer` party, **dispose** with the responder party, then **act**. The reviewer party is what makes a list doubly-checked rather than self-confirmed — a scan that both finds and approves its own findings is the weakest possible review. `fix-now` findings never enter either backlog; they are the branch's work.
+
+## Reviews are not kept
+
+Local reviews and responses are **print-only**: `he9_review` shows them, and the durable output is the code change and any debt entries, each self-contained. Nothing needs the report after the session, so the commands do not persist one. The CI reviewer still posts its review to the forge, which is what `he9_review respond` reads.
