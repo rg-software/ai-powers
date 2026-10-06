@@ -27,7 +27,7 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
 
 If the invocation text is empty or does not name a target, treat it as `branch` — but if it is ambiguous, state which target you are about to use before reviewing.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing. Pass the resolved inputs to the reviewer rather than making it re-derive them; `code-review-expert` documents the same defaults.
 
 ## Mode: review a target
 
@@ -44,9 +44,7 @@ If the invocation text is empty or does not name a target, treat it as `branch` 
 
    > Perform a code review of this change set: `<resolved diff spec>`. List the files included. For untracked files, read each one in full and review it as added code. If any file is out of scope or not reviewable, say so explicitly.
    >
-   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Use `.opencode/powers.jsonc` (if present) for the conventions and specs to check architecture drift against. Populate the review's `Not reviewed` section, including any graded input that was absent.
-   >
-   > This is non-interactive: skip the skill's "hand-off" step and do not ask how to proceed.
+   > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Pass it the project inputs resolved above; it owns input resolution, `Not reviewed`, and the non-interactive hand-off skip, so do not restate those. Use `.opencode/powers.jsonc` (if present) for the conventions and specs to check architecture drift against.
 
 3. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
 

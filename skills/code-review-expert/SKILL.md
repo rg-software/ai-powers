@@ -23,6 +23,26 @@ If the project has a `.opencode/powers.jsonc` adapter, read it. It points at the
 
 If a graded input (conventions, specs) is absent, name it in the review's `Not reviewed` section and say what was therefore not graded. Never let a missing input pass silently.
 
+### Resolving project inputs
+
+The adapter overrides the defaults below. Probe each path; **a missing path is skipped, never guessed.** List only the inputs this review actually uses.
+
+| Input | Default |
+|-------|---------|
+| `conventions` | `openspec/conventions.md` if present |
+| `specs` | `openspec/specs/*/spec.md` if present |
+| `debt` | `openspec/technical-debt.md` if present |
+| `docs` | `docs/*.md` if present |
+| `baseBranch` | `origin/HEAD`; ask if unset |
+
+`baseBranch` is a path-independent case: `origin/HEAD` is a local symbolic ref that a bare clone or `git init` + `git remote add` may not have created, and it goes stale when the remote's default branch moves. A wrong base silently produces a wrong diff, so when neither the adapter nor `origin/HEAD` yields one, **ask rather than guessing.**
+
+Callers that already resolved these (the `he9-review` and `he9-debt` skills) pass them in; do not re-derive them.
+
+### Non-interactive runs
+
+In CI or any scripted run there is nobody to ask, so: skip the Hand-off step (state that you skipped it), never ask a question mid-review, and resolve inputs from whatever the caller supplies. A CI caller may grade against a **base SHA** rather than the working tree — that is deliberate, so that a pull request cannot rewrite the conventions or specs its own review is judged against. Do not "correct" it to the head.
+
 ## When to use
 
 - Code is hard to understand or maintain.
@@ -38,6 +58,7 @@ Use `receiving-code-review` instead when the task is to **respond** to a review,
 ### 1) Preflight context
 
 - Scope the change: `git status -sb`, `git diff --stat`, `git diff` (or the given base/head SHAs and diff).
+- If the caller already resolved a diff spec, scope to exactly that and say which spec you used. Note that `git diff` silently omits untracked files — for a worktree review, enumerate them with `git status --porcelain` and read their contents, or new files are reviewed by name only.
 - **If asked to review a tree rather than a change** (a codebase audit): there is no diff. Enumerate files with `git ls-files <scope>` and apply the same checklists. Grade against the adapter's conventions and specs — with no change, a defect cannot be attributed to one, so cite the rule it violates instead.
 - Edge cases:
   - **No changes**: say so and ask for a range.

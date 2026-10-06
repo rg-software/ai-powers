@@ -11,8 +11,8 @@ Everything a developer installs is a **skill**. The single exception is the serv
 ```text
 skills/
   he9-review-contract/     # the shared rubric: axes, severities, finding schema, dispositions
-  code-review-expert/      # reviewer (forked, aligned to the contract)
-  receiving-code-review/   # responder (forked, aligned to the contract)
+  code-review-expert/      # reviewer: how to run a review, including input resolution
+  receiving-code-review/   # responder: how to answer one, with the contract vocabulary
   he9-start/               # pick a task, prepare a feature branch
   he9-commit/              # verify and commit with a Conventional Commit message
   he9-push-pr/             # push and open a pull request
