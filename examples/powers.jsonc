@@ -1,4 +1,4 @@
-// OPTIONAL project adapter for the he9_* commands.
+// OPTIONAL project adapter for the he9-* skills.
 //
 // You usually do not need this file. The skills probe the standard layout and
 // infer the rest:

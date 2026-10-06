@@ -27,13 +27,17 @@ If a graded input (conventions, specs) is absent, name it in the review's `Not r
 
 The adapter overrides the defaults below. Probe each path; **a missing path is skipped, never guessed.** List only the inputs this review actually uses.
 
-| Input | Default |
-|-------|---------|
-| `conventions` | `openspec/conventions.md` if present |
-| `specs` | `openspec/specs/*/spec.md` if present |
-| `debt` | `openspec/technical-debt.md` if present |
-| `docs` | `docs/*.md` if present |
-| `baseBranch` | `origin/HEAD`; ask if unset |
+| Input | Default | Used by a review |
+|-------|---------|-------------------|
+| `conventions` | `openspec/conventions.md` if present | yes — the rules findings cite |
+| `specs` | `openspec/specs/*/spec.md` if present | yes — the rules findings cite |
+| `baseBranch` | `origin/HEAD`; ask if unset | yes — scopes the diff |
+| `debt` | `openspec/technical-debt.md` if present | only to check a candidate is already recorded |
+| `docs` | `docs/*.md` if present | yes — for docs → code accuracy |
+| `tracker` | auto: forge MCP, else git remote host, else ask | no — the calling workflow files findings |
+| `contract` | `he9-review-contract` | no — loaded above; the key only names it |
+
+The last two are listed so an adapter key is never unrecognized: they belong to the surrounding workflows, not to grading a diff.
 
 `baseBranch` is a path-independent case: `origin/HEAD` is a local symbolic ref that a bare clone or `git init` + `git remote add` may not have created, and it goes stale when the remote's default branch moves. A wrong base silently produces a wrong diff, so when neither the adapter nor `origin/HEAD` yields one, **ask rather than guessing.**
 

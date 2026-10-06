@@ -203,6 +203,60 @@ if (!existsSync(opencodeVersionPath)) {
   }
 }
 
+// --- project input keys -----------------------------------------------------
+// The set of adapter keys is stated in three places: KNOWN_INPUT_KEYS above,
+// the table code-review-expert documents for the model, and the annotated
+// example a human copies from. A key that exists in one and not the others is
+// an unverified claim in whichever place is missing it, so require all three
+// to agree.
+const documentedInputKey = (text) => {
+  const table = text.match(/### Resolving project inputs([\s\S]*?)(?=\n#{2,3} )/);
+  if (!table) return null;
+  const keys = new Set();
+  for (const [, key] of table[1].matchAll(/^\|\s*`([A-Za-z][A-Za-z0-9]*)`\s*\|/gm)) keys.add(key);
+  return keys;
+};
+
+const expertPath = join(skillsDir, "code-review-expert", "SKILL.md");
+if (existsSync(expertPath)) {
+  const documented = documentedInputKey(readFileSync(expertPath, "utf8"));
+  if (!documented) {
+    errors.push(
+      'skills/code-review-expert/SKILL.md: no "### Resolving project inputs" table — the model-facing input contract must be documented',
+    );
+  } else {
+    for (const key of documented) {
+      if (!KNOWN_INPUT_KEYS.has(key)) {
+        errors.push(`skills/code-review-expert: documents input "${key}" which is not a known key`);
+      }
+    }
+    for (const key of KNOWN_INPUT_KEYS) {
+      if (!documented.has(key)) {
+        errors.push(
+          `skills/code-review-expert: does not document the "${key}" input, which KNOWN_INPUT_KEYS treats as valid`,
+        );
+      }
+    }
+  }
+}
+
+// The example is what a human copies, so a key commented out there but missing
+// from the model-facing table (or vice versa) sends them to the wrong file.
+const examplePath = join(root, "examples", "powers.jsonc");
+if (existsSync(examplePath)) {
+  const example = readFileSync(examplePath, "utf8");
+  for (const [, key] of example.matchAll(/^\s*\/\/\s*"([A-Za-z][A-Za-z0-9]*)"\s*:/gm)) {
+    if (!KNOWN_INPUT_KEYS.has(key)) {
+      errors.push(`examples/powers.jsonc: shows override "${key}" which is not a known key`);
+    }
+  }
+  for (const key of KNOWN_INPUT_KEYS) {
+    if (!new RegExp(`"${key}"\\s*:`).test(example)) {
+      errors.push(`examples/powers.jsonc: does not show an override for the "${key}" input`);
+    }
+  }
+}
+
 // --- layout -----------------------------------------------------------------
 // `he9_pr_review` is dispatched by name from CI (`opencode run --command`), so
 // it must stay a command. It must therefore not exist as a skill, where that
