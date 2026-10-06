@@ -24,6 +24,16 @@ Note that a manual dispatch runs the workflow file from the **selected ref**, no
 - The workflow is loaded from the PR **base** branch (`pull_request_target`), never the PR head.
 - All executed artifacts are **trusted and pinned**: ai-powers at `AI_POWERS_REF`, and tools from the registry. Nothing from the PR checkout is ever executed.
 - The reviewer runs read-only: `edit`/`write`/`question` denied, `webfetch`/`websearch` denied, `bash` restricted to read-only git and listing commands. This stops PR-injected content from exfiltrating the model key through tools.
+- The review resolves configuration and skills **only** from what the workflow copies under `~/.config/opencode`. `OPENCODE_DISABLE_PROJECT_CONFIG` covers `.opencode/`, `OPENCODE_DISABLE_EXTERNAL_SKILLS` covers `.agents/` and `.claude/`. Together they mean a directory in the checkout cannot silently become an input to its own review.
+
+## What the reviewer reads
+
+Because external skills are disabled, the workflow installs the review skills into `~/.config/opencode/skills` rather than `~/.agents/skills` — the config dir is scanned unconditionally, and after the external walk, so a trusted copy wins by precedence. The two are coupled: adding the flag without moving the copy leaves the reviewer with no skills at all, and the workflow's sanity checks fail loudly rather than silently.
+
+Two things are deliberately **not** covered, and neither is worth hardening for a first-party repo:
+
+- **`AGENTS.md`** is loaded as instructions regardless of these flags. A checkout file can talk the reviewer into a different opinion; it cannot reach a tool, since the permission config is unchanged.
+- **No assertion that the workspace is clean.** A legitimate PR carrying a `.agents/` directory is not an error, so the workflow does not fail on one. If you ever fork this workflow for a repo that accepts third-party pull requests, assert the workspace has no `.opencode/`, `.agents/`, or `.claude/` before the review step.
 - The project adapter is read from the **base** SHA, so a PR cannot rewrite the conventions or specs its own review is graded against.
 
 ## Where things come from

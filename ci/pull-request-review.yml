@@ -13,6 +13,14 @@
 # ever executed: base-SHA project scripts, ai-powers at AI_POWERS_REF, and tools
 # installed from the registry. If you add a step, review it against this rule
 # before merging.
+#
+# The review run additionally sets OPENCODE_DISABLE_PROJECT_CONFIG and
+# OPENCODE_DISABLE_EXTERNAL_SKILLS, so the reviewer resolves configuration and
+# skills only from the copies this workflow places under ~/.config/opencode.
+# Without them a checkout file (an .opencode/ or .agents/ directory) would join
+# the review's inputs. That is a correctness concern before it is a security
+# one — a review should grade against the project it is reviewing, not against
+# whatever that checkout happens to carry.
 
 name: AI PR Reviewer
 
@@ -110,7 +118,7 @@ jobs:
         if: steps.setupenv.outputs.hit == 'true'
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
+          mkdir -p "$HOME/.config/opencode/commands" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
           powers="$HOME/.gitea/trusted/ai-powers"
 
           # The server-only review command -> global commands dir (loaded even when
@@ -121,15 +129,19 @@ jobs:
           [ -d "$powers/commands" ] && cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/" || true
           [ -d "$powers/ci/commands" ] && cp "$powers/ci/commands/"*.md "$HOME/.config/opencode/commands/" || true
 
-          # Skills (reviewer, responder, contract) -> runner-global skills dir.
-          cp -R "$powers/skills/." "$HOME/.agents/skills/"
+          # Skills (reviewer, responder, contract) -> the opencode config dir, NOT
+          # ~/.agents/skills. The run below sets OPENCODE_DISABLE_EXTERNAL_SKILLS,
+          # which turns off the .agents/.claude walk entirely, so skills placed
+          # there would be invisible. The config dir is scanned unconditionally,
+          # and after the external walk, so these win by precedence.
+          cp -R "$powers/skills/." "$HOME/.config/opencode/skills/"
 
           # The review-text extractor ships with ai-powers too.
           node --check "$powers/ci/scripts/extract-review-text.js"
 
           # Sanity: everything the review run depends on must be present.
-          [ -f "$HOME/.agents/skills/he9-review-contract/SKILL.md" ]
-          [ -f "$HOME/.agents/skills/code-review-expert/SKILL.md" ]
+          [ -f "$HOME/.config/opencode/skills/he9-review-contract/SKILL.md" ]
+          [ -f "$HOME/.config/opencode/skills/code-review-expert/SKILL.md" ]
           [ -f "$HOME/.config/opencode/commands/he9_pr_review.md" ]
           [ -f "$powers/ci/scripts/extract-review-text.js" ]
 
@@ -187,7 +199,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))" && echo "opencode-ci.json is valid JSON"
 
           echo "opencode_config=$HOME/.gitea/trusted/opencode-ci.json" >> "$GITHUB_OUTPUT"
-          ls -la "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
+          ls -la "$HOME/.config/opencode/commands" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
 
       - name: Setup Node.js
         if: steps.setupenv.outputs.hit == 'true'
@@ -229,7 +241,14 @@ jobs:
           AI_MODEL_NAME: ${{ vars.AI_MODEL_NAME }}
           OPENCODE_CONFIG: ${{ steps.trusted.outputs.opencode_config }}
           OPENCODE_DISABLE_AUTOUPDATE: "1"
+          # Keep the review grounded in what ai-powers provides rather than what
+          # the checkout happens to contain. Together these two mean the review
+          # reads only the command and skills copied above: the first covers
+          # .opencode/ config and skills, the second the .agents/ and .claude/
+          # trees. Both are cheap on our own repos and keep a stray file from
+          # silently becoming part of a posted review.
           OPENCODE_DISABLE_PROJECT_CONFIG: "1"
+          OPENCODE_DISABLE_EXTERNAL_SKILLS: "1"
         run: |
           # Read and truncate the diff to avoid blowing up context
           DIFF_CONTENT="(no diff available)"

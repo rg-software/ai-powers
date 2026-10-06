@@ -223,6 +223,30 @@ if (existsSync(workflowPath) && opencodeVersion) {
       'ci/pull-request-review.yml: does not install opencode-ai — the 1.x CLI package (2.x ships as @opencode/cli)',
     );
   }
+
+  // The review run must resolve config and skills only from what this workflow
+  // copies under ~/.config/opencode. Each flag covers a different tree, and
+  // dropping one is silent: the review still runs, just with whatever the
+  // checkout carried. They are coupled — disabling external skills also hides
+  // ~/.agents/skills, so the copy destination has to move with it.
+  const requiredEnv = ["OPENCODE_DISABLE_PROJECT_CONFIG", "OPENCODE_DISABLE_EXTERNAL_SKILLS"];
+  for (const name of requiredEnv) {
+    if (!new RegExp(`${name}:\\s*"1"`).test(workflow)) {
+      errors.push(`ci/pull-request-review.yml: the review run does not set ${name}=1`);
+    }
+  }
+
+  const copiesSkillsToExternal = /cp -R "\$powers\/skills\/\." "\$HOME\/\.agents\/skills\/"/.test(workflow);
+  if (copiesSkillsToExternal) {
+    errors.push(
+      "ci/pull-request-review.yml: copies skills into ~/.agents/skills, which OPENCODE_DISABLE_EXTERNAL_SKILLS hides — put them in ~/.config/opencode/skills",
+    );
+  }
+  if (!/cp -R "\$powers\/skills\/\." "\$HOME\/\.config\/opencode\/skills\/"/.test(workflow)) {
+    errors.push(
+      "ci/pull-request-review.yml: does not copy the review skills into ~/.config/opencode/skills, the only location still discovered once external skills are disabled",
+    );
+  }
 }
 
 // --- project input keys -----------------------------------------------------
