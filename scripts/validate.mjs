@@ -194,12 +194,34 @@ for (const path of contentFiles) {
 
 // --- pinned CI config -------------------------------------------------------
 const opencodeVersionPath = join(root, "ci", "opencode-version");
-if (!existsSync(opencodeVersionPath)) {
+const opencodeVersion = existsSync(opencodeVersionPath)
+  ? readFileSync(opencodeVersionPath, "utf8").trim()
+  : undefined;
+if (!opencodeVersion) {
   errors.push("ci/opencode-version is missing");
-} else {
-  const version = readFileSync(opencodeVersionPath, "utf8").trim();
-  if (!/^\d+\.\d+\.\d+/.test(version)) {
-    errors.push(`ci/opencode-version does not look like a version: "${version}"`);
+} else if (!/^\d+\.\d+\.\d+$/.test(opencodeVersion)) {
+  errors.push(`ci/opencode-version does not look like a version: "${opencodeVersion}"`);
+}
+
+// The workflow carries its own fallback literal for when the pinned file is
+// unreadable. That duplicate silently rots, so require the two to agree — and
+// require the fallback to name the 1.x npm package, since the CLI that installs
+// this pin also has to exist on the registry.
+const workflowPath = join(root, "ci", "pull-request-review.yml");
+if (existsSync(workflowPath) && opencodeVersion) {
+  const workflow = readFileSync(workflowPath, "utf8");
+  const fallback = workflow.match(/opencode-version[^|\n]*\|\| echo ([\d.]+)/);
+  if (!fallback) {
+    errors.push("ci/pull-request-review.yml: no fallback literal beside the ci/opencode-version read");
+  } else if (fallback[1] !== opencodeVersion) {
+    errors.push(
+      `ci/pull-request-review.yml: fallback pins opencode ${fallback[1]} but ci/opencode-version says ${opencodeVersion}`,
+    );
+  }
+  if (!/npm i -g "opencode-ai@/.test(workflow)) {
+    errors.push(
+      'ci/pull-request-review.yml: does not install opencode-ai — the 1.x CLI package (2.x ships as @opencode/cli)',
+    );
   }
 }
 

@@ -204,7 +204,7 @@ jobs:
           OPENCODE_VERSION: ${{ vars.OPENCODE_VERSION }}
         run: |
           set -euo pipefail
-          pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 1.18.15)"
+          pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 1.18.34)"
           version="${OPENCODE_VERSION:-$pinned}"
           echo "installing opencode-ai@${version}"
           npm i -g "opencode-ai@${version}"
