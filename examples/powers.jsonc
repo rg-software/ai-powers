@@ -1,6 +1,6 @@
 // OPTIONAL project adapter for the he9_* commands.
 //
-// You usually do not need this file. The commands probe the standard layout and
+// You usually do not need this file. The skills probe the standard layout and
 // infer the rest:
 //
 //   baseBranch : from origin/HEAD, else "main"

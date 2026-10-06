@@ -34,7 +34,7 @@ Note that a manual dispatch runs the workflow file from the **selected ref**, no
 | `ci/commands/he9_pr_review.md`, review skills, contract | `AI_POWERS_REPO` | `AI_POWERS_REF` |
 | Project conventions/specs/adapter | PR **base** SHA (via the checkout) | base SHA |
 
-The server-only review command lives at `ci/commands/`, beside the workflow that runs it, and is **not** installed on developer machines — the local installer ships only `commands/`. The workflow copies both sets into the runner's global commands directory.
+The server-only review command lives at `ci/commands/`, beside the workflow that runs it, and is **not** installed on developer machines — everything a developer installs is a skill. It stays a command because the workflow invokes it as `opencode run --command he9_pr_review`, and that lookup resolves against the command registry, where skills do not appear. `scripts/validate.mjs` enforces that a `skills/he9-pr-review/` directory does not exist.
 
 The opencode CLI version is pinned in `ci/opencode-version`, because it is coupled to `ci/scripts/extract-review-text.js` (which parses `opencode run --format json`). Bumping the CLI and the extractor together, in one reviewed commit, is how a change to the event format gets handled. A project can override with the `OPENCODE_VERSION` variable.
 
@@ -62,7 +62,7 @@ The workflow commits no project-local helper scripts: it ships its own (`ci/scri
 
 ## Reviewer identity
 
-The reviewer is **not** matched by user name and is not configurable. Every posted review begins with the marker `<!-- he9-reviewer:v1 -->`, and `he9_review respond` matches that marker. Rename the token's user, or post with a different token, and the cycle still works.
+The reviewer is **not** matched by user name and is not configurable. Every posted review begins with the marker `<!-- he9-reviewer:v1 -->`, and `he9-review respond` matches that marker. Rename the token's user, or post with a different token, and the cycle still works.
 
 `AI_REVIEW_MENTION` is a separate concept: it is the text a *human* writes in a comment to trigger a manual review (default `@ai-reviewer`). It is a plain substring test and need not name a real user.
 
@@ -71,4 +71,10 @@ The reviewer is **not** matched by user name and is not configurable. Every post
 1. Copy `ci/pull-request-review.yml` to `.gitea/workflows/` or `.github/workflows/`.
 2. Set the variables and secrets above on the forge.
 3. (Optional) Add a project adapter `.opencode/powers.jsonc` only if the project deviates from the standard layout — see `docs/adapter.md`.
-4. On each developer machine, run this repo's `install/install.ps1` (or `.sh`) to get the commands and skills.
+4. On each developer machine, install the skills once:
+
+   ```bash
+   npx skills add rg-software/ai-powers -g -a opencode -y
+   ```
+
+   Later revisions come from `npx skills update -g`. The workflow's own command is not installed locally — CI copies it per run at the pinned ref.

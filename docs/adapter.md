@@ -1,6 +1,6 @@
 # Project inputs
 
-The `he9_*` commands need to know a project's base branch, where its conventions, specs, and debt backlog live, and which forge it uses. **None of that is required configuration.** The commands probe the standard layout and infer the rest; the adapter file exists only to override.
+The `he9-*` skills need to know a project's base branch, where its conventions, specs, and debt backlog live, and which forge it uses. **None of that is required configuration.** The skills probe the standard layout and infer the rest; the adapter file exists only to override.
 
 ## How inputs are resolved
 
@@ -16,7 +16,7 @@ The `he9_*` commands need to know a project's base branch, where its conventions
 
 A probed path that does not exist is **skipped**, never guessed: if a project has no specs directory, the steps that would read specs simply do not run, and the command says so.
 
-`baseBranch` is different, because its fallback is not a path. `origin/HEAD` is a **local symbolic ref** (`refs/remotes/origin/HEAD`) that `git clone` creates — so it is absent in a repo set up with `git init` + `git remote add`, in a bare/mirror clone, or when nobody has run `git remote set-head origin -a`; it can also be stale if the remote's default branch changed. A wrong base branch silently produces a wrong diff, and in `he9_push_pr` a PR against the wrong target, so when neither the adapter nor `origin/HEAD` yields one the commands **ask instead of guessing**.
+`baseBranch` is different, because its fallback is not a path. `origin/HEAD` is a **local symbolic ref** (`refs/remotes/origin/HEAD`) that `git clone` creates — so it is absent in a repo set up with `git init` + `git remote add`, in a bare/mirror clone, or when nobody has run `git remote set-head origin -a`; it can also be stale if the remote's default branch changed. A wrong base branch silently produces a wrong diff, and in `he9-push-pr` a PR against the wrong target, so when neither the adapter nor `origin/HEAD` yields one the commands **ask instead of guessing**.
 
 ## The adapter file (optional)
 
@@ -26,33 +26,33 @@ Standard-layout projects need no adapter at all. Create it when a project deviat
 
 ## Tracker
 
-`tracker` selects the tooling the **local commands** use for issues and pull requests:
+`tracker` selects the tooling the **local skills** use for issues and pull requests:
 
-- `he9_start`, `he9_debt` list/open issues
-- `he9_push_pr` creates and finds pull requests
-- `he9_review respond` reads PR review comments
+- `he9-start`, `he9-debt` list/open issues
+- `he9-push-pr` creates and finds pull requests
+- `he9-review respond` reads PR review comments
 
 Auto-detection order: a configured forge MCP (e.g. a `gitea` MCP server) → the git remote host → ask the user once. Set `tracker` explicitly only when that is wrong or ambiguous (e.g. a self-hosted forge with an unrecognisable hostname).
 
 ## What the adapter does not control
 
-The keys configure the **local commands** only. They do **not** reconfigure CI: the PR-review workflow is a forge-specific file (Gitea `.gitea/workflows/`, GitHub `.github/workflows/`) with its own variables and secrets. See `docs/ci.md`.
+The keys configure the **local skills** only. They do **not** reconfigure CI: the PR-review workflow is a forge-specific file (Gitea `.gitea/workflows/`, GitHub `.github/workflows/`) with its own variables and secrets. See `docs/ci.md`.
 
-The reviewer's identity is not configurable here and not matched by user name. The CI reviewer stamps every review with the marker `<!-- he9-reviewer:v1 -->`, and `he9_review respond` matches that marker. Renaming the token's user does not affect the cycle.
+The reviewer's identity is not configurable here and not matched by user name. The CI reviewer stamps every review with the marker `<!-- he9-reviewer:v1 -->`, and `he9-review respond` matches that marker. Renaming the token's user does not affect the cycle.
 
 ## Environment (per machine / forge)
 
 | Variable | Used by | Meaning |
 |----------|---------|---------|
-| `REVIEWER_MODEL` | `@reviewer` subagent | model for local cross-model review; see "Local reviewer agent" below |
-| `GITEA_TOKEN` | `he9_push_pr`, `he9_debt` promote | tracker auth |
-| `OPENCODE_CONFIG_DIR` | optional | override the global config dir the installer targets |
+| `REVIEWER_MODEL` | `reviewer` subagent | model for local cross-model review; see "Local reviewer agent" below |
+| `GITEA_TOKEN` | `he9-push-pr`, `he9-debt` promote | tracker auth |
+| `OPENCODE_CONFIG_DIR` | optional | override the global config dir opencode reads |
 
 CI-only variables and secrets are listed in `docs/ci.md`.
 
 ## Local reviewer agent
 
-`he9_review`'s review mode invokes a **`reviewer` subagent**, so the local cycle is a cross-model review rather than the author grading their own work. This is **project config — ai-powers does not install it.** Define it in the project's `opencode.jsonc` (or `.opencode/opencode.json`):
+`he9-review`'s review mode and `he9-debt scan` both invoke a **`reviewer` subagent**, so the identifying party differs from the one that disposes of the findings — the doubly-checked property the debt scan depends on. This is **project config — ai-powers does not install it.** Define it in the project's `opencode.jsonc` (or `.opencode/opencode.json`):
 
 ```jsonc
 {
@@ -75,19 +75,29 @@ Notes:
 - Set it in your shell (e.g. `REVIEWER_MODEL=anthropic/claude-sonnet-4-6`), then restart opencode; config is loaded at startup.
 - `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `bash` to scope the target with `git`.
 
-A ready-to-copy file is at `examples/reviewer-agent.jsonc`. Without this agent `he9_review` cannot start; it names the prerequisite and offers a self-review fallback instead of failing with a raw subagent-not-found error.
+`examples/reviewer-agent.jsonc` holds this snippet. Merge those keys into your existing `opencode.jsonc` — do not overwrite the file, since it usually already carries project settings.
+
+Without this agent `he9-review` cannot start and `he9-debt scan` loses its second pair of eyes; both name the prerequisite and offer a self-review fallback instead of failing with a raw subagent-not-found error.
+
+The subagent is referenced from the skill body as `reviewer`. Because these are skills, that mention is prompt text the model acts on, not a dispatch the harness resolves — an unavailable subagent arrives as an ordinary turn instead of an error. Both workflows therefore:
+
+- **stop rather than degrade.** With no `reviewer` configured, `he9-review` and `he9-debt scan` say so and stop; they do not quietly become a self-review or self-audit. Each offers one as an explicit opt-in.
+- **name the party.** Every report is headed `Reviewing party: reviewer` or `Identifying party: self-audit (not independently identified)`, and `he9-debt` carries the party into each entry's provenance, since no scan report is kept.
+- **fail loudly.** If a `reviewer` invocation fails or returns nothing usable, the workflow reports which step failed instead of substituting its own output under the subagent's name.
+
+That last property is why this file matters: an agent defined under a different key is a silent downgrade to a single-mind review, not an error you would notice. `scripts/validate.mjs` enforces the stop rule and the `REVIEWING_PARTY` declaration in any skill that invokes the subagent.
 
 ## Two backlogs
 
-The commands keep two separate backlogs, split by **audience**:
+The skills keep two separate backlogs, split by **audience**:
 
-- **Internal** — the resolved `debt` document (default `openspec/technical-debt.md`), committed and developer-facing. Local discovery lands here: `he9_debt scan` records new entries, and `he9_review` writes the findings whose action is `defer-debt`. Entries are self-contained (they do not rely on a review report being kept) and are worked via `he9_start <TD-id>`, then removed once the fixing branch or change merges.
+- **Internal** — the resolved `debt` document (default `openspec/technical-debt.md`), committed and developer-facing. Local discovery lands here: `he9-debt scan` records new entries, and `he9-review` writes the findings whose action is `defer-debt`. Entries are self-contained (they do not rely on a review report being kept) and are worked via `he9-start <TD-id>`, then removed once the fixing branch or change merges.
 - **External** — the resolved `tracker`, for issues reported by clients or users, or work that genuinely concerns outsiders.
 
-The bridge between them is **one-way**: `he9_debt promote <item>` escalates an internal entry to the tracker when outsiders turn out to care, and removes it from the internal document so the two never track the same item. Most debt never needs promoting — it is fixed directly from the internal backlog, which keeps low-value local findings out of the public tracker.
+The bridge between them is **one-way**: `he9-debt promote <item>` escalates an internal entry to the tracker when outsiders turn out to care, and removes it from the internal document so the two never track the same item. Most debt never needs promoting — it is fixed directly from the internal backlog, which keeps low-value local findings out of the public tracker.
 
 Both flows share one shape: **identify** with the separate `reviewer` party, **dispose** with the responder party, then **act**. The reviewer party is what makes a list doubly-checked rather than self-confirmed — a scan that both finds and approves its own findings is the weakest possible review. `fix-now` findings never enter either backlog; they are the branch's work.
 
 ## Reviews are not kept
 
-Local reviews and responses are **print-only**: `he9_review` shows them, and the durable output is the code change and any debt entries, each self-contained. Nothing needs the report after the session, so the commands do not persist one. The CI reviewer still posts its review to the forge, which is what `he9_review respond` reads.
+Local reviews and responses are **print-only**: `he9-review` shows them, and the durable output is the code change and any debt entries, each self-contained. Nothing needs the report after the session, so the skills do not persist one. The CI reviewer still posts its review to the forge, which is what `he9-review respond` reads.

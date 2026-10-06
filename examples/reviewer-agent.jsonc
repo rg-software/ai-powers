@@ -1,4 +1,4 @@
-// Example local reviewer agent for `he9_review`.
+// Example local reviewer agent for `he9-review`.
 //
 // Copy the "agent" block into the project's opencode.jsonc (or
 // .opencode/opencode.json). The key is `agent` (singular) -- `agents` is

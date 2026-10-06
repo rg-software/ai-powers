@@ -113,9 +113,11 @@ jobs:
           mkdir -p "$HOME/.config/opencode/commands" "$HOME/.agents/skills" "$HOME/.gitea/trusted"
           powers="$HOME/.gitea/trusted/ai-powers"
 
-          # Commands -> global commands dir (loaded even when project config is disabled).
-          # Tolerant of either layout so a pinned older/newer ai-powers revision
-          # still works: local commands and/or the server-only review command.
+          # The server-only review command -> global commands dir (loaded even when
+          # project config is disabled). It must stay a command: the run below
+          # dispatches it via `opencode run --command`.
+          # The top-level commands/ copy is kept so a pinned older ai-powers
+          # revision, which shipped the local workflows there, still works.
           [ -d "$powers/commands" ] && cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/" || true
           [ -d "$powers/ci/commands" ] && cp "$powers/ci/commands/"*.md "$HOME/.config/opencode/commands/" || true
 
@@ -301,7 +303,7 @@ jobs:
           github-token: ${{ secrets.AIR_GITEA_API_TOKEN }}
           script: |
             // A stable marker identifies this bot's reviews independent of the
-            // token's user name. he9_review respond matches on it.
+            // token's user name. he9-review respond matches on it.
             const MARKER = "<!-- he9-reviewer:v1 -->";
             const body = (process.env.RESULT || "(no output from AI model)").trim();
             const footer = `\n\n---\n<sub>ai-powers@${process.env.AI_POWERS_SHA || "unknown"}</sub>`;

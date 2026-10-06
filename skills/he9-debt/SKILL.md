@@ -1,28 +1,30 @@
 ---
-description: "Track internal technical debt: scan a scope for debt, or promote an entry to the external tracker"
+name: he9-debt
+description: "Track internal technical debt - scan a scope for debt, or promote an entry to the external tracker. Use when the user asks to scan for debt, record debt, tidy the debt backlog, or promote a debt entry. Invocation text selects the mode: 'scan <scope>' (default) or 'promote <item-id>'."
+license: MIT
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Technical debt workflow
 
-Goal: identify and record internal technical debt — including documentation drift — without turning it into unfocused branch-wide refactoring and without polluting the public tracker. This is the workflow for improving an existing codebase; `he9_review` is the workflow for reviewing a change.
+Goal: identify and record internal technical debt — including documentation drift — without turning it into unfocused branch-wide refactoring and without polluting the public tracker. This is the workflow for improving an existing codebase; `he9-review` is the workflow for reviewing a change.
+
+**Invocation.** The invocation text selects the mode:
+
+- `scan <scope>`: find debt in a scope, verify it in a second pass, arbitrate the exceptions, and record it. This is the default when the text is empty.
+- `promote <item-id>`: escalate one entry to the external tracker and remove it from the internal document.
 
 Two backlogs, split by **audience**:
 
 - **Internal** — the resolved `debt` document, committed and developer-facing. Debt found locally (by a developer, a review, or a scan) lands here. Entries are almost always worked from here, not filed as tracker issues.
 - **External** — the resolved `tracker`. Issues reported by clients or users, or work that genuinely concerns outsiders, live there.
 
-`promote` is the one-way bridge: escalate an internal entry to the external tracker when outsiders turn out to care. Most debt never needs it — it is picked up with `he9_start` and fixed directly.
+`promote` is the one-way bridge: escalate an internal entry to the external tracker when outsiders turn out to care. Most debt never needs it — it is picked up with `he9-start` and fixed directly.
 
 A scan is doubly-checked: a separate reviewer party finds candidates, the responder party verifies and disposes of them, and the human arbitrates the exceptions. A list that both finds and approves its own findings is the weakest possible review.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `docs` (`docs/*.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
-
-## Argument
-
-`$ARGUMENTS` selects the mode:
-
-- `scan <scope>`: find debt in a scope, verify it in a second pass, arbitrate the exceptions, and record it. This is the default when the argument is empty.
-- `promote <item-id>`: escalate one entry to the external tracker and remove it from the internal document.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `docs` (`docs/*.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
 
 ## Grading
 
@@ -43,8 +45,15 @@ Do not invent a second scale, and do not add a second axis. An undocumented syst
 - a path (`Assets/Features/InGame`) — that folder and below.
 - a capability or domain name — the spec area and the code it covers.
 
-1. Resolve the scope from the argument; if none was given, ask.
-2. **Identify, via the separate reviewer party.** Invoke the `@reviewer` subagent so the candidate list is produced by a different mind than the one that will judge it. If no `reviewer` subagent is configured, do not fail with a raw error: say so (see `docs/adapter.md` → "Local reviewer agent") and offer a self-audit instead. Give it this task:
+1. Resolve the scope from the invocation text; if none was given, ask.
+2. **Identify, via the separate reviewer party.** Invoke the `reviewer` subagent so the candidate list is produced by a different mind than the one that will judge it. In a skill body, `reviewer` is prose the model acts on, not a dispatch the harness resolves — so an unavailable subagent surfaces as an ordinary turn, not an error. Handle it explicitly:
+
+   - Check the configured subagents first. If `reviewer` is present, `REVIEWING_PARTY = reviewer` (subagent).
+   - If it is absent, **stop before scanning.** Say the scan needs a `reviewer` subagent, point at `docs/adapter.md` → "Local reviewer agent", and offer a self-audit instead. Proceed with a self-audit only if the user asks for it, and then set `REVIEWING_PARTY = self-audit (not independently identified)`.
+   - A scan run without the separate party is not doubly-checked. Record that in the outcome: **announce the party** with every report (`Identifying party: reviewer` or `Identifying party: self-audit (not independently identified)`), and carry it into the entries you write, so a later reader can tell a checked scan from an unchecked one.
+   - If a `reviewer` invocation fails, returns nothing usable, or you cannot confirm it ran, report which step failed and stop. Do not produce the candidate list yourself and present it as the subagent's.
+
+   Give it this task:
 
    > Audit `<scope>` for technical debt using the `code-review-expert` checklists (SOLID, security/reliability, code quality). Report candidates with `file:line`, the symptom, why it matters, a suggested direction, and a proposed Priority (`he9-review-contract` → "Mapping to the debt backlog"). Cover three lenses: code and architecture drift from the resolved conventions file and specs glob; docs → code accuracy (claims in the resolved specs glob and docs glob that the source no longer matches); and code → docs coverage (significant systems with no covering doc).
    >
@@ -57,18 +66,18 @@ Do not invent a second scale, and do not add a second axis. An undocumented syst
    - any candidate whose disposition you are unsure of.
 
    Do not record anything until this step is done. Routine `accepted` items need no discussion.
-5. Write the **accepted** entries into the resolved debt document, using that document's own item template. Do not restate the template here. Each entry must be **self-contained** (see `he9-review-contract` → "Mapping to the debt backlog"): inline the evidence, symptom, `file:line`, and rationale, because no review report is kept.
+5. Write the **accepted** entries into the resolved debt document, using that document's own item template. Do not restate the template here. Each entry must be **self-contained** (see `he9-review-contract` → "Mapping to the debt backlog"): inline the evidence, symptom, `file:line`, and rationale, because no review report is kept. Since no report is kept either, append the `REVIEWING_PARTY` from Step 2 to each entry's provenance so the record shows whether the candidate was independently identified.
 6. **Gardening pass over the whole document.** This is the maintenance that used to be a separate mode, and it does not implement code changes:
    - re-check each entry against the code and mark one that no longer holds `resolved` for removal;
    - merge duplicates and group closely related entries;
    - split oversized entries, clarify scope and impact, and re-check Priority.
 
    An entry whose fix has already merged should have been removed by the fixer on that branch; if one lingers, remove it here.
-7. Report what was recorded and the gardening outcome. Then ask whether any entry should be picked up now (via `he9_start <TD-id>`, the normal path) or promoted (escalation, rare).
+7. Report what was recorded and the gardening outcome, headed by the `Identifying party` announced in Step 2. Then ask whether any entry should be picked up now (via `he9-start <TD-id>`, the normal path) or promoted (escalation, rare).
 
 ## Mode: promote <item-id>
 
-Escalation only. Picking up an entry to fix it is `he9_start <TD-id>`; this mode is for when an internal item turns out to concern outsiders.
+Escalation only. Picking up an entry to fix it is `he9-start <TD-id>`; this mode is for when an internal item turns out to concern outsiders.
 
 1. Find the entry in the resolved debt document.
 2. **Re-check that it is still true** against the code. If it is already fixed, mark it `resolved` instead of promoting it.

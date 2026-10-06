@@ -67,7 +67,7 @@ IF you cannot verify:          say so, and ask how to proceed.
 IF it conflicts with a prior decision of the user's: stop and discuss with the user first.
 ```
 
-A `@reviewer` subagent and a CI bot both fall in this bucket — verify, do not defer to them. Cross-model review is only useful if you check it.
+A `reviewer` subagent and a CI bot both fall in this bucket — verify, do not defer to them. Cross-model review is only useful if you check it.
 
 ## YAGNI check
 

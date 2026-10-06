@@ -78,16 +78,25 @@ if (!existsSync(skillsDir)) {
   }
 }
 
-// --- commands ---------------------------------------------------------------
-const commandFiles = [];
-for (const dir of [join(root, "commands"), join(root, "ci", "commands")]) {
+// --- content rules ----------------------------------------------------------
+// These apply to every markdown body ai-powers ships, whether it ships as a
+// skill (skills/) or as a server-only command (ci/commands/). The local
+// workflows are skills; `he9_pr_review` stays a command because CI dispatches
+// it by name through `opencode run --command`.
+const contentFiles = [];
+for (const dir of [join(root, "skills"), join(root, "ci", "commands")]) {
   if (!existsSync(dir)) continue;
-  for (const file of readdirSync(dir)) {
-    if (file.endsWith(".md")) commandFiles.push(join(dir, file));
-  }
+  const walk = (current) => {
+    for (const entry of readdirSync(current)) {
+      const path = join(current, entry);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (entry === "SKILL.md") contentFiles.push(path);
+    }
+  };
+  walk(dir);
 }
 
-for (const path of commandFiles) {
+for (const path of contentFiles) {
   const text = readFileSync(path, "utf8");
 
   const fm = frontmatter(text);
@@ -99,16 +108,35 @@ for (const path of commandFiles) {
     errors.push(`${rel(path)}: contains a {{...}} placeholder — not an opencode template variable; use a plain reference`);
   }
 
-  const mentionsArgument = /^##\s+Argument\b/m.test(text) || /determined by the argument/i.test(text);
-  if (mentionsArgument && !text.includes("$ARGUMENTS")) {
-    errors.push(`${rel(path)}: describes an argument but never uses $ARGUMENTS`);
+  // A skill body is injected as a prompt, so it cannot rely on `$ARGUMENTS`
+  // substitution the way a command template can. Every skill must therefore
+  // carry an **Invocation.** note saying where its input comes from — the
+  // invocation text when it has a target, or the repository state when it does
+  // not. `$ARGUMENTS` is legitimate only in a command, where opencode
+  // substitutes it for real.
+  const isCommand = rel(path).startsWith("ci/commands/");
+  if (!isCommand) {
+    // A skill that advertises an invocation target in its description is a
+    // workflow: it takes input from the text following the skill name, so it
+    // must say so in the body. A reference skill (contract, checklists) has no
+    // input and is exempt.
+    const description = (frontmatter(text)?.match(/^description:\s*(.+)$/m)?.[1] ?? "").toLowerCase();
+    const isWorkflow = /invocation text|invocation target/.test(description);
+    if (isWorkflow && !/^\*\*Invocation\.\*\*/m.test(text)) {
+      errors.push(`${rel(path)}: advertises an invocation target but has no "**Invocation.**" note`);
+    }
+    if (text.includes("$ARGUMENTS")) {
+      errors.push(
+        `${rel(path)}: uses $ARGUMENTS in a skill body — opencode does not substitute it there; read the invocation text instead`,
+      );
+    }
   }
 
-  // Commands list only the project inputs they use. Verify both that the key is
-  // known and that the command actually references it outside the preamble --
+  // Content lists only the project inputs it uses. Verify both that the key is
+  // known and that the body actually references it outside the preamble --
   // otherwise the list is an unverified claim. Keys are written as `key`
   // (default), so require the parenthetical to avoid matching defaults like `main`.
-  const usage = text.match(/This command uses:([\s\S]*?)(?:\.\s|\.$)/);
+  const usage = text.match(/This (?:command|skill) uses:([\s\S]*?)(?:\.\s|\.$)/);
   if (usage) {
     const preamble = text.match(/\*\*Project inputs[\s\S]*?(?:\r?\n\s*\r?\n)/);
     const body = preamble ? text.replace(preamble[0], "") : text;
@@ -124,14 +152,43 @@ for (const path of commandFiles) {
   }
 }
 
-// A command that invokes the local reviewer subagent depends on a prerequisite
+// Content that invokes the local reviewer subagent depends on a prerequisite
 // living in the consuming project, so this repo must document it.
-const referencesReviewer = commandFiles.some((path) => readFileSync(path, "utf8").includes("@reviewer"));
+const referencesReviewer = contentFiles.some((path) => readFileSync(path, "utf8").includes("reviewer` subagent"));
 if (referencesReviewer) {
   const adapterDoc = join(root, "docs", "adapter.md");
   const documented = existsSync(adapterDoc) && readFileSync(adapterDoc, "utf8").includes("Local reviewer agent");
   if (!documented) {
-    errors.push('a command references "@reviewer" but docs/adapter.md has no "Local reviewer agent" section');
+    errors.push(
+      'content references the "reviewer" subagent but docs/adapter.md has no "Local reviewer agent" section',
+    );
+  }
+}
+
+// In a skill body `reviewer` is prose the model acts on, not a dispatch the
+// harness resolves, so a missing subagent silently becomes a self-review. Any
+// content that invokes it must therefore (a) stop rather than degrade when the
+// subagent is unavailable, and (b) name the party it actually used, so a
+// single-mind review can never be passed off as a doubly-checked one.
+for (const path of contentFiles) {
+  const text = readFileSync(path, "utf8");
+  // Only workflows actually invoke the subagent. A reference skill may merely
+  // discuss reviewer output as evidence (receiving-code-review does), which
+  // needs neither a party nor a stop rule.
+  if (!/invoke the `reviewer` subagent/i.test(text)) continue;
+
+  const haltsOnMissing = /\*\*stop/i.test(text) || /stop before scanning/i.test(text);
+  if (!haltsOnMissing) {
+    errors.push(
+      `${rel(path)}: invokes the "reviewer" subagent but never says to stop when it is unavailable — a skill-body mention cannot fail loudly on its own`,
+    );
+  }
+
+  const declaresParty = /REVIEWING_PARTY/.test(text);
+  if (!declaresParty) {
+    errors.push(
+      `${rel(path)}: invokes the "reviewer" subagent but never sets REVIEWING_PARTY — the reviewing party must be named in the output`,
+    );
   }
 }
 
@@ -144,6 +201,17 @@ if (!existsSync(opencodeVersionPath)) {
   if (!/^\d+\.\d+\.\d+/.test(version)) {
     errors.push(`ci/opencode-version does not look like a version: "${version}"`);
   }
+}
+
+// --- layout -----------------------------------------------------------------
+// `he9_pr_review` is dispatched by name from CI (`opencode run --command`), so
+// it must stay a command. It must therefore not exist as a skill, where that
+// lookup cannot find it.
+const serverSkill = join(root, "skills", "he9-pr-review", "SKILL.md");
+if (existsSync(serverSkill)) {
+  errors.push(
+    "skills/he9-pr-review: the server-only review command is invoked via `opencode run --command` and must not be a skill",
+  );
 }
 
 if (errors.length > 0) {

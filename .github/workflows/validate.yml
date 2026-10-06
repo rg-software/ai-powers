@@ -27,20 +27,25 @@ jobs:
         run: |
           python3 -c "import yaml; yaml.safe_load(open('ci/pull-request-review.yml')); print('ci/pull-request-review.yml OK')"
 
-      - name: Dry-run the installer
+      - name: Check the shipped layout
         run: |
           set -euo pipefail
-          rm -rf /tmp/ai-powers-install
-          bash install/install.sh \
-            --skills-dir /tmp/ai-powers-install/skills \
-            --commands-dir /tmp/ai-powers-install/commands
-
-          for name in code-review-expert he9-review-contract receiving-code-review; do
-            [ -f "/tmp/ai-powers-install/skills/${name}/SKILL.md" ] || { echo "missing skill: ${name}"; exit 1; }
+          # The local workflows are skills; only the server-only review command
+          # stays a command, because CI dispatches it with `opencode run --command`.
+          for name in code-review-expert he9-commit he9-debt he9-push-pr he9-review \
+                      he9-review-contract he9-start receiving-code-review; do
+            [ -f "skills/${name}/SKILL.md" ] || { echo "missing skill: ${name}"; exit 1; }
           done
-          for name in he9_commit he9_debt he9_push_pr he9_review he9_start; do
-            [ -f "/tmp/ai-powers-install/commands/${name}.md" ] || { echo "missing command: ${name}"; exit 1; }
-          done
-          [ ! -f /tmp/ai-powers-install/commands/he9_pr_review.md ] || { echo "server-only command leaked into the local install"; exit 1; }
+          [ -f "ci/commands/he9_pr_review.md" ] || { echo "missing server command: he9_pr_review"; exit 1; }
+          [ ! -d skills/he9-pr-review ] || { echo "server-only command leaked into skills/"; exit 1; }
+          [ ! -d commands ] || { echo "commands/ still exists; the local workflows are skills"; exit 1; }
 
-          echo "installer dry-run OK"
+          # Every skill must be discoverable by `npx skills add`, which reads
+          # skills/ at the repo root and requires name + description.
+          for file in skills/*/SKILL.md; do
+            head -1 "$file" | grep -qx -- '---' || { echo "$file: missing frontmatter"; exit 1; }
+            grep -q '^name:' "$file" || { echo "$file: missing name"; exit 1; }
+            grep -q '^description:' "$file" || { echo "$file: missing description"; exit 1; }
+          done
+
+          echo "layout OK"

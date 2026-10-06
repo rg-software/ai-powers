@@ -1,24 +1,26 @@
 ---
-description: "Start a task: pick a tracked issue, a debt entry, a spec change, or an ad-hoc task, then prepare context and create a feature branch"
+name: he9-start
+description: "Start a task - pick a tracked issue, a debt entry, a spec change, or an ad-hoc task, then prepare context and create a feature branch. Use when the user asks to start, begin, or pick up work. Invocation text is the task source: an issue number, a debt id (TD-###), an active change name, or a freeform description."
+license: MIT
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Start a task
 
 Goal: identify the current task and prepare a feature branch for it.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
+**Invocation.** The task source is the text that accompanied this skill — the words after the skill name. It may be a tracked issue number, a debt id (`TD-###`), the name of an active change, or a freeform description. When the text is empty (or names nothing recognizable), derive the task in Step 1 instead.
 
-## Argument
-
-`$ARGUMENTS` is the task source: a tracked issue number, a debt id (`TD-###`), the name of an active change, or a freeform description. An empty argument means derive the task (Step 1).
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: configured forge MCP, else git remote host, else ask). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
 
 ## Step 1. Identify the task source
 
-- If the argument is a tracked issue number, use it (Step 2a).
-- If the argument is a debt id (`TD-###`), use it (Step 2d).
-- If the argument matches an active change, use it (Step 2b).
-- If the argument is freeform, use it as an ad-hoc task (Step 2c).
-- If there was no argument, derive the task from the list of currently added/modified/deleted files (Step 2c).
+- If the invocation text is a tracked issue number, use it (Step 2a).
+- If it is a debt id (`TD-###`), use it (Step 2d).
+- If it matches an active change, use it (Step 2b).
+- If it is freeform, use it as an ad-hoc task (Step 2c).
+- If there was no invocation text, derive the task from the list of currently added/modified/deleted files (Step 2c).
 - If the task still cannot be identified, inform the user and stop.
 - If in doubt, list the open issues and the active changes and ask the user to choose.
 
@@ -33,12 +35,12 @@ Goal: identify the current task and prepare a feature branch for it.
 
 - Confirm the change exists and summarize its goal to the user.
 - Treat the change as the current context.
-- Implementation proceeds via the change-apply skill on this branch.
+- Implementation proceeds via the `opsx-apply-change` skill on this branch.
 - Derive the branch name per the conventions: `{user}/opsx-{change-name}`.
 
 ## Step 2c. Ad-hoc task
 
-- Derive a short description from the argument or the changed files.
+- Derive a short description from the invocation text or the changed files.
 - Derive the branch name per the conventions: `{user}/{short-task-desc}`.
 
 ## Step 2d. Debt-entry task

@@ -1,6 +1,6 @@
 ---
 name: he9-review-contract
-description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Load it when reviewing code or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9_review / he9_pr_review commands.
+description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Load it when reviewing code or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9-* workflows.
 license: MIT
 ---
 
@@ -185,7 +185,7 @@ action:    fix-now|defer-debt|promote-issue|promote-change|wontfix
 
 When a **graded input is absent** — no conventions file, no specs, no adapter — say so explicitly in the review's `Not reviewed` section: name the input and what therefore was not graded. Absence must never be silent. A review that drops architecture-drift grading because specs were missing must not read as if it were clean.
 
-This matters more than it looks: the commands find what to grade against by probing for these inputs, and a failed probe that goes unmentioned silently narrows the review while leaving its verdict unchanged.
+This matters more than it looks: the skills find what to grade against by probing for these inputs, and a failed probe that goes unmentioned silently narrows the review while leaving its verdict unchanged.
 
 ---
 
@@ -244,7 +244,7 @@ Review: <ref to the review, e.g. PR #123 comment / local report>
 
 ## Mapping to the debt backlog
 
-A deferred finding lands in the project's **debt document** — the resolved `debt` file, default `openspec/technical-debt.md`. This is an **internal backlog**, developer-facing: local findings are fixed from here rather than filed in the external tracker (`he9_debt promote` is the rare one-way escalation, and it removes the entry). The document is committed, so an entry must stand on its own. Every entry:
+A deferred finding lands in the project's **debt document** — the resolved `debt` file, default `openspec/technical-debt.md`. This is an **internal backlog**, developer-facing: local findings are fixed from here rather than filed in the external tracker (`he9-debt promote` is the rare one-way escalation, and it removes the entry). The document is committed, so an entry must stand on its own. Every entry:
 
 - **Is self-contained.** Inline the evidence, symptom, `path:line`, and rationale. The review that produced it is **not kept**; a reference to a report that no longer exists is not traceability. The finding `id` may remain as provenance, nothing more.
 - **Priority** = the severity *class* of the deficiency, on this same `P` scale. Do not invent a second one. `P0` is excluded: a P0 is fixed, never deferred.
@@ -260,7 +260,7 @@ Because a debt entry describes code that already exists rather than a change, th
 
 ### Dispositions in a debt scan
 
-`he9_debt scan` verifies candidate items with the disposition vocabulary above, read as:
+`he9-debt scan` verifies candidate items with the disposition vocabulary above, read as:
 
 | disposition | meaning for a candidate debt item |
 |-------------|-----------------------------------|

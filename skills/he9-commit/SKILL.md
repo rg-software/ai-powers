@@ -1,12 +1,18 @@
 ---
-description: "Commit the current task with a Conventional Commit message (auto-links the tracked issue from the branch name)"
+name: he9-commit
+description: "Commit the current task with a Conventional Commit message (auto-links the tracked issue from the branch name). Use when the user asks to commit the current work, or to finalize and save the task in progress. Takes no argument."
+license: MIT
+metadata:
+  opencode/autoinvoke: false
 ---
 
 # Commit task
 
 Goal: finalize the current task with a commit on the current branch.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This command uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`). Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
+**Invocation.** This workflow takes no argument: everything it needs comes from the working tree and the resolved project inputs below. Do not wait for an invocation target — read the task from `git status` and the diff.
+
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`). Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
 
 ## Step 1. Understand context
 
