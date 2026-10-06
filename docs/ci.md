@@ -84,7 +84,7 @@ The reviewer is **not** matched by user name and is not configurable. Every post
 4. On each developer machine, install the skills once:
 
    ```bash
-   npx skills add rg-software/ai-powers -g -a opencode -y
+   npx skills add rg-software/ai-powers -g -a cline -y
    ```
 
-   Later revisions come from `npx skills update -g`. The workflow's own command is not installed locally — CI copies it per run at the pinned ref.
+   That targets `~/.agents/skills` (see the README for why the flag reads oddly). Later revisions come from `npx skills update -g`. The workflow's own command is not installed locally — CI copies it per run at the pinned ref.

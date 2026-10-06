@@ -43,10 +43,19 @@ The reviewer and responder skills both load `he9-review-contract`; the workflows
 With [`npx skills`](https://github.com/vercel-labs/skills):
 
 ```bash
-npx skills add rg-software/ai-powers -g -a opencode -y
+npx skills add rg-software/ai-powers -g -a cline -y
 ```
 
-That installs every skill in this repo into `~/.config/opencode/skills/` — the global location opencode reads — and covers updates too:
+`-a cline` looks odd for an opencode repo, and it is deliberate: the target is what the flag selects, not what the skills are for. The `skills` CLI maps each agent id to a directory, and `cline` is the id whose global path is `~/.agents/skills`. opencode reads that location natively, so this puts the skills where they belong for a machine-wide install:
+
+| Flag | Installs to | opencode reads it |
+|------|-------------|-------------------|
+| `-a cline` | `~/.agents/skills/` | yes, native |
+| `-a opencode` | `~/.config/opencode/skills/` | yes, native |
+
+Either works. Pick one root per skill and do not install the same skill under both — opencode loads both and lets the later-registered `~/.config/opencode/skills` win, which is confusing to debug. `-a cline` is recommended here because `~/.agents/skills` is shared with other agents, so one install serves them all.
+
+Updates are one command either way:
 
 ```bash
 npx skills update -g          # pull the latest revision of everything installed
@@ -77,7 +86,7 @@ Copy `examples/powers.jsonc` and `examples/reviewer-agent.jsonc` as starting poi
 
 - Replace the old installer (`install/install.ps1`, `install/install.sh`, now removed) with `npx skills add` above, then delete what it left behind:
   - `~/.config/opencode/commands/he9_*.md` — the old command files, now skills
-  - `~/.agents/skills/{code-review-expert,receiving-code-review,he9-review-contract}` — the old install target; `npx skills` uses `~/.config/opencode/skills/`, and a duplicate ID in the older location is shadowed but confusing
+  - any copy of this repo's skills under `~/.config/opencode/skills/`, if you previously ran `npx skills add -a opencode`. The install command above targets `~/.agents/skills`, so a leftover copy in the other root would shadow it and silently win. Either delete it or keep installing with `-a opencode` instead.
 - `npx skills update -g` refreshes skills only. The command in `ci/` is not installed on machines and updates with the pinned `AI_POWERS_REF`.
 - Restart opencode if a newly installed skill does not appear; recent versions reload config and skills on their own.
 - Invoking a skill by name (`/he9-review worktree`) attaches it and keeps the text after the name as the input, but only when the composer resolves it as an attachment. Typed as plain text with no attachment, it reaches the model as prose and the model may or may not load the skill. Each workflow says what to read, so this degrades rather than breaks.
