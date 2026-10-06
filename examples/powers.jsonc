@@ -3,7 +3,7 @@
 // You usually do not need this file. The skills probe the standard layout and
 // infer the rest:
 //
-//   baseBranch : from origin/HEAD, else "main"
+//   baseBranch : from origin/HEAD; ask if unset (never guess "main")
 //   conventions: openspec/conventions.md      (if present)
 //   specs      : openspec/specs/*/spec.md     (if present)
 //   debt       : openspec/technical-debt.md   (if present)

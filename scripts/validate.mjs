@@ -2,8 +2,11 @@
 // Validates ai-powers content. Dependency-free; run from the repo root:
 //   node scripts/validate.mjs
 //
-// Checks every skill's frontmatter against the rules opencode enforces, and
-// that every command carries a description. This is what stops a broken skill
+// Checks each skill's frontmatter against the rules opencode enforces, that
+// every shipped body carries a description, that the adapter keys agree across
+// the places they are written down, that the pinned CLI version and the
+// workflow's use of it match, and that no shipped skill points at a file the
+// install does not include. This is what stops a broken skill
 // from reaching `main` and, from there, every consuming project's CI.
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -79,21 +82,31 @@ if (!existsSync(skillsDir)) {
 }
 
 // --- content rules ----------------------------------------------------------
-// These apply to every markdown body ai-powers ships, whether it ships as a
-// skill (skills/) or as a server-only command (ci/commands/). The local
-// workflows are skills; `he9_pr_review` stays a command because CI dispatches
-// it by name through `opencode run --command`.
+// Every markdown body ai-powers ships, whether it ships as a skill
+// (skills/*/SKILL.md) or as a server-only command (ci/commands/*.md). The
+// `SKILL.md` filter must not apply to the command dir: a command file is
+// named for its command, so collecting only SKILL.md there silently skipped
+// the server command and every rule below with it.
 const contentFiles = [];
-for (const dir of [join(root, "skills"), join(root, "ci", "commands")]) {
-  if (!existsSync(dir)) continue;
-  const walk = (current) => {
+{
+  const walkSkills = (current) => {
     for (const entry of readdirSync(current)) {
       const path = join(current, entry);
-      if (statSync(path).isDirectory()) walk(path);
+      if (statSync(path).isDirectory()) walkSkills(path);
       else if (entry === "SKILL.md") contentFiles.push(path);
     }
   };
-  walk(dir);
+  if (existsSync(join(root, "skills"))) walkSkills(join(root, "skills"));
+
+  const commandDir = join(root, "ci", "commands");
+  if (existsSync(commandDir)) {
+    for (const entry of readdirSync(commandDir)) {
+      if (entry.endsWith(".md")) contentFiles.push(join(commandDir, entry));
+    }
+  }
+}
+if (!contentFiles.some((path) => rel(path).startsWith("ci/commands/"))) {
+  errors.push("ci/commands/ has no .md file — the server-only review command is missing");
 }
 
 for (const path of contentFiles) {
@@ -293,6 +306,23 @@ for (const name of ["he9-start", "he9-push-pr", "he9-review", "he9-debt"]) {
   if (!/Resolving the tracker/.test(readFileSync(path, "utf8"))) {
     errors.push(
       `skills/${name}: reads the \`tracker\` key but does not point at the contract's "Resolving the tracker"`,
+    );
+  }
+}
+
+// A skill that declares the `contract` input is claiming to grade with the
+// shared rubric, so the declaration itself must name that skill. Checking the
+// whole file instead is vacuous: he9-debt names the contract in six places, so
+// dropping the declaration still passes.
+for (const path of contentFiles) {
+  const text = readFileSync(path, "utf8");
+  const usage = text.match(/This (?:command|skill) uses:([\s\S]*?)(?:\.\s|\.$)/);
+  if (!usage) continue;
+  const declares = usage[1].match(/`contract`\s*\(([^)]*)\)/);
+  if (!declares) continue;
+  if (!/he9-review-contract/.test(declares[1])) {
+    errors.push(
+      `${rel(path)}: declares the \`contract\` input as (${declares[1].trim()}) — name the he9-review-contract skill so the declaration resolves`,
     );
   }
 }

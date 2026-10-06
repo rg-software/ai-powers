@@ -12,6 +12,7 @@ Everything a developer installs is a **skill**. The single exception is the serv
 skills/
   he9-review-contract/     # the shared rubric: axes, severities, finding schema, dispositions
   code-review-expert/      # reviewer: how to run a review, including input resolution
+    references/            # the checklists it grades against
   receiving-code-review/   # responder: how to answer one, with the contract vocabulary
   he9-start/               # pick a task, prepare a feature branch
   he9-commit/              # verify and commit with a Conventional Commit message
@@ -31,12 +32,13 @@ ci/
   scripts/                 # trigger evaluation + review-text extraction
   opencode-version         # pinned opencode CLI version (coupled to the extractor)
 scripts/
-  validate.mjs             # validates skills + the server command (CI and locally)
+  validate.mjs             # validates skills, the server command, and the pinned version
+  test-trigger-script.mjs  # tests the CI trigger evaluation
 .github/workflows/
-  validate.yml             # runs the validation on every change to main
+  validate.yml             # runs the validation on every push and pull request
 ```
 
-The reviewer and responder skills both load `he9-review-contract`; the workflows reference it too. Change the rubric in one place and both sides move together.
+The reviewer and responder skills both load `he9-review-contract`, and so do the workflows that grade or dispose of findings — `he9-review` and `he9-debt`. Change the rubric in one place and both sides move together.
 
 ## Install (per machine)
 

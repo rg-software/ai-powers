@@ -20,7 +20,7 @@ A rubric does not make two reviewers agree. It makes disagreement **legible**: t
 
 ## Resolving the tracker
 
-Not part of grading a diff; here because every `he9-*` workflow needs it and this is the one skill they all load. A **tracker is a forge, not a tool**.
+Not part of grading a diff; here because the workflows that touch a tracker need it, and this is the skill they already load. A **tracker is a forge, not a tool**.
 
 Resolve the forge, then resolve a CLI for it:
 
@@ -54,7 +54,10 @@ If the CLI is missing or unauthenticated, **name it and how to fix it** — do n
       "mode": "subagent",
       "description": "Reviews code for best practices.",
       "model": "{env:REVIEWER_MODEL}",
-      "permission": { "read": "allow", "edit": "deny" }
+      "permissions": [
+        { "action": "read", "resource": "*", "effect": "allow" },
+        { "action": "edit", "resource": "*", "effect": "deny" }
+      ]
     }
   }
 }
@@ -62,6 +65,7 @@ If the CLI is missing or unauthenticated, **name it and how to fix it** — do n
 
 - The key is `agent` (singular); `agents` is silently ignored.
 - **Merge these keys** into the project's existing config — do not overwrite the file, which usually carries other settings.
+- `permissions` is the opencode 2.x form: an ordered list of `action`/`resource`/`effect` rules, last match wins. The 1.x object form (`"permission": { "read": "allow" }`) is accepted for compatibility but is not what a new project should copy.
 - `{env:REVIEWER_MODEL}` keeps the model id out of the repo; set it in the shell and restart opencode.
 - `read: allow` lets the reviewer inspect the diff and specs. `edit: deny` stops a review from touching the code it judges. With restrictive permissions it also needs `shell` to scope the target with `git`.
 

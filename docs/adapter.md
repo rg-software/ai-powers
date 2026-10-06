@@ -34,7 +34,7 @@ Standard-layout projects need no adapter at all. Create it when a project deviat
 
 ### How it resolves
 
-The procedure is defined in the `he9-review-contract` skill, which every workflow loads — that is the copy the model reads, and it ships with the install. Summarised here for humans:
+The procedure is defined in the `he9-review-contract` skill, which the workflows that touch the tracker load — that is the copy the model reads, and it ships with the install. Summarised here for humans:
 
 1. **Explicit** — `tracker` in `.opencode/powers.jsonc` wins: `"gitea"`, `"github"`, or `"gitlab"`.
 2. **Git remote host** — read `git remote get-url origin` and match the host. `github.com` → github, a host matching `gitlab` → gitlab, anything else → ask.
@@ -82,7 +82,10 @@ CI-only variables and secrets are listed in `docs/ci.md`.
       "mode": "subagent",
       "description": "Reviews code for best practices.",
       "model": "{env:REVIEWER_MODEL}",
-      "permission": { "read": "allow", "edit": "deny" }
+      "permissions": [
+        { "action": "read", "resource": "*", "effect": "allow" },
+        { "action": "edit", "resource": "*", "effect": "deny" }
+      ]
     }
   }
 }
@@ -91,9 +94,10 @@ CI-only variables and secrets are listed in `docs/ci.md`.
 Notes:
 
 - The key is `agent` (singular). `agents` is silently ignored.
+- `permissions` is the opencode 2.x form: an ordered list of `action`/`resource`/`effect` rules where the last match wins. The 1.x object form (`"permission": { "read": "allow" }`) is still accepted, but a new project should copy the list form. To find out what an existing project actually resolved to, run `opencode debug config`.
 - `{env:REVIEWER_MODEL}` interpolates the environment variable at load time, keeping the model id out of the repo — it is deliberately machine-specific and not pinned here.
 - Set it in your shell (e.g. `REVIEWER_MODEL=anthropic/claude-sonnet-4-6`), then restart opencode; config is loaded at startup.
-- `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `bash` to scope the target with `git`.
+- `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `shell` to scope the target with `git`.
 
 The snippet above is also in `examples/reviewer-agent.jsonc`. Merge those keys into your existing `opencode.jsonc` — do not overwrite the file, since it usually already carries project settings. The `he9-review-contract` skill carries the same snippet, so a user who installed only the skills still has it.
 
