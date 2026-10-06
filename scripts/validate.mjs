@@ -297,6 +297,27 @@ for (const name of ["he9-start", "he9-push-pr", "he9-review", "he9-debt"]) {
   }
 }
 
+// Only skills/ is installed, so a shipped skill that points at docs/, examples/
+// or ci/ hands the model a reference it cannot open. This is the same defect the
+// tracker rule above fixes, and it is silent: the skill still reads fine, it
+// just cannot tell the user where to look.
+const shippedOnly = /(?<![\w.])(?:docs|examples|ci|scripts|install)\//;
+for (const path of contentFiles) {
+  if (!rel(path).startsWith("skills/")) continue;
+  for (const [index, line] of readFileSync(path, "utf8").split("\n").entries()) {
+    const match = line.match(shippedOnly);
+    if (!match) continue;
+    // `docs` is also an adapter key naming the project's own docs glob, which
+    // legitimately reads as docs/*.md. Only flag paths that look like a file or
+    // a directory reference rather than that glob.
+    const after = line.slice(match.index + match[0].length);
+    if (/^\*\./.test(after)) continue;
+    errors.push(
+      `${rel(path)}:${index + 1}: points at ${match[0]} — only skills/ is installed, so the model cannot open it`,
+    );
+  }
+}
+
 // --- project input keys -----------------------------------------------------
 // The set of adapter keys is stated in three places: KNOWN_INPUT_KEYS above,
 // the table code-review-expert documents for the model, and the annotated

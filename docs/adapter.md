@@ -95,7 +95,7 @@ Notes:
 - Set it in your shell (e.g. `REVIEWER_MODEL=anthropic/claude-sonnet-4-6`), then restart opencode; config is loaded at startup.
 - `read: allow` lets the reviewer inspect the diff and specs; `edit: deny` stops a review from modifying the code it is judging. If your project's permissions are restrictive, the reviewer also needs `bash` to scope the target with `git`.
 
-`examples/reviewer-agent.jsonc` holds this snippet. Merge those keys into your existing `opencode.jsonc` — do not overwrite the file, since it usually already carries project settings.
+The snippet above is also in `examples/reviewer-agent.jsonc`. Merge those keys into your existing `opencode.jsonc` — do not overwrite the file, since it usually already carries project settings. The `he9-review-contract` skill carries the same snippet, so a user who installed only the skills still has it.
 
 Without this agent `he9-review` cannot start and `he9-debt scan` loses its second pair of eyes; both name the prerequisite and offer a self-review fallback instead of failing with a raw subagent-not-found error.
 

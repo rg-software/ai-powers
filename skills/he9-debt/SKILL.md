@@ -49,7 +49,7 @@ Do not invent a second scale, and do not add a second axis. An undocumented syst
 2. **Identify, via the separate reviewer party.** Invoke the `reviewer` subagent so the candidate list is produced by a different mind than the one that will judge it. In a skill body, `reviewer` is prose the model acts on, not a dispatch the harness resolves — so an unavailable subagent surfaces as an ordinary turn, not an error. Handle it explicitly:
 
    - Check the configured subagents first. If `reviewer` is present, `REVIEWING_PARTY = reviewer` (subagent).
-   - If it is absent, **stop before scanning.** Say the scan needs a `reviewer` subagent, point at `docs/adapter.md` → "Local reviewer agent", and offer a self-audit instead. Proceed with a self-audit only if the user asks for it, and then set `REVIEWING_PARTY = self-audit (not independently identified)`.
+   - If it is absent, **stop before scanning.** Say the scan needs a `reviewer` subagent, show the snippet from `he9-review-contract` → "Configuring the reviewer", and offer a self-audit instead. Proceed with a self-audit only if the user asks for it, and then set `REVIEWING_PARTY = self-audit (not independently identified)`.
    - A scan run without the separate party is not doubly-checked. Record that in the outcome: **announce the party** with every report (`Identifying party: reviewer` or `Identifying party: self-audit (not independently identified)`), and carry it into the entries you write, so a later reader can tell a checked scan from an unchecked one.
    - If a `reviewer` invocation fails, returns nothing usable, or you cannot confirm it ran, report which step failed and stop. Do not produce the candidate list yourself and present it as the subagent's.
 

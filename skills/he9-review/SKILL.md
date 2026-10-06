@@ -31,10 +31,10 @@ If the invocation text is empty or does not name a target, treat it as `branch` 
 
 ## Mode: review a target
 
-0. **Establish the reviewing party.** This mode requires a `reviewer` subagent (see `docs/adapter.md` → "Local reviewer agent"). In a skill body, `reviewer` is prose the model acts on, not a dispatch the harness resolves — so an unavailable subagent surfaces as an ordinary turn, not an error. Handle it explicitly:
+0. **Establish the reviewing party.** This mode requires a `reviewer` subagent (see `he9-review-contract` → "Configuring the reviewer"). In a skill body, `reviewer` is prose the model acts on, not a dispatch the harness resolves — so an unavailable subagent surfaces as an ordinary turn, not an error. Handle it explicitly:
 
    - Check the configured subagents before reviewing. If `reviewer` is present, `REVIEWING_PARTY = reviewer` (subagent).
-   - If it is absent, **stop.** Do not review yourself. Tell the user this mode needs a `reviewer` subagent, point at `docs/adapter.md` → "Local reviewer agent", and offer a self-review instead. Proceed with a self-review only if the user asks for it, and then set `REVIEWING_PARTY = self-review (not independently reviewed)`.
+   - If it is absent, **stop.** Do not review yourself. Tell the user this mode needs a `reviewer` subagent, show the snippet from `he9-review-contract` → "Configuring the reviewer", and offer a self-review instead. Proceed with a self-review only if the user asks for it, and then set `REVIEWING_PARTY = self-review (not independently reviewed)`.
    - Whatever happens, **announce the party** before presenting any finding, in this form: `Reviewing party: reviewer` or `Reviewing party: self-review (not independently reviewed)`. Never present a review without it.
    - If a `reviewer` invocation fails, returns nothing usable, or you cannot confirm it ran, treat it as a failure: report which step failed and stop. Do not substitute your own review and label it as the subagent's.
 

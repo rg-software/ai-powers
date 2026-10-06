@@ -42,6 +42,33 @@ If the CLI is missing or unauthenticated, **name it and how to fix it** — do n
 
 ---
 
+## Configuring the reviewer
+
+`he9-review` and `he9-debt scan` invoke a `reviewer` subagent so the party that identifies findings is not the one that disposes of them. It is **project config — nothing here installs it.** Each consuming project adds it to its own `opencode.jsonc` (or `.opencode/opencode.json`):
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Reviews code for best practices.",
+      "model": "{env:REVIEWER_MODEL}",
+      "permission": { "read": "allow", "edit": "deny" }
+    }
+  }
+}
+```
+
+- The key is `agent` (singular); `agents` is silently ignored.
+- **Merge these keys** into the project's existing config — do not overwrite the file, which usually carries other settings.
+- `{env:REVIEWER_MODEL}` keeps the model id out of the repo; set it in the shell and restart opencode.
+- `read: allow` lets the reviewer inspect the diff and specs. `edit: deny` stops a review from touching the code it judges. With restrictive permissions it also needs `shell` to scope the target with `git`.
+
+Without it, those two workflows name the prerequisite and offer a self-review fallback rather than failing with a raw subagent-not-found error.
+
+---
+
 ## The four axes
 
 Keep these separate. Fusing them is the most common source of argument.
