@@ -34,7 +34,7 @@ Standard-layout projects need no adapter at all. Create it when a project deviat
 
 ### How it resolves
 
-A tracker is a *forge*, not a tool. Resolution picks the forge, then picks a CLI for it:
+The procedure is defined in the `he9-review-contract` skill, which every workflow loads — that is the copy the model reads, and it ships with the install. Summarised here for humans:
 
 1. **Explicit** — `tracker` in `.opencode/powers.jsonc` wins: `"gitea"`, `"github"`, or `"gitlab"`.
 2. **Git remote host** — read `git remote get-url origin` and match the host. `github.com` → github, a host matching `gitlab` → gitlab, anything else → ask.
@@ -48,11 +48,7 @@ Having chosen the forge, use a CLI rather than an MCP server. A forge CLI is alr
 | gitea | `tea` | `tea login --name <host>`, or `GITEA_TOKEN` |
 | gitlab | `glab` | `glab auth login`, or `GITLAB_TOKEN` |
 
-If the CLI is missing or unauthenticated, **say which one and how to fix it** rather than falling back to a different forge or inventing an API call:
-
-> `he9-push-pr` needs the GitHub CLI for this repository (`gh`), which is not authenticated. Run `gh auth login`, or set `GH_TOKEN`. I can still show you the draft PR body without opening it.
-
-Prefer a configured forge MCP server only when the CLI is genuinely unavailable — some self-hosted Gitea instances have no usable `tea` build. Check the CLI first, since that is the common case.
+If the CLI is missing or unauthenticated, say which one and how to fix it rather than falling back to a different forge or inventing an API call. Prefer a forge MCP server only when the CLI is genuinely unavailable.
 
 Set `tracker` explicitly when auto-detection is wrong or ambiguous: a self-hosted forge on an unrecognisable host, or a repo whose issues live somewhere other than its git remote.
 

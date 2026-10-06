@@ -1,6 +1,6 @@
 ---
 name: he9-review-contract
-description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Load it when reviewing code or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9-* workflows.
+description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Also carries the tracker-resolution procedure (forge → gh/tea/glab) that the he9-* workflows share. Load it when reviewing code or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9-* workflows.
 license: MIT
 ---
 
@@ -17,6 +17,28 @@ A rubric does not make two reviewers agree. It makes disagreement **legible**: t
 - Not a substitute for tests. A finding is "no behavioral impact" only if a test or a spec says so.
 - Not a merge gate by itself. It feeds a human decision.
 - Not a style guide. Project style lives in the project — its conventions file (the adapter's `conventions` key) and `.editorconfig`.
+
+## Resolving the tracker
+
+Not part of grading a diff; here because every `he9-*` workflow needs it and this is the one skill they all load. A **tracker is a forge, not a tool**.
+
+Resolve the forge, then resolve a CLI for it:
+
+1. **Explicit** — the adapter's `tracker` key wins: `"github"`, `"gitea"`, `"gitlab"`.
+2. **Git remote host** — `git remote get-url origin`. `github.com` → github, a host matching `gitlab` → gitlab, anything else → ask.
+3. **Ask** — one question, then offer to record the answer in the adapter.
+
+| Forge | CLI | Auth |
+|-------|-----|------|
+| github | `gh` | `gh auth login`, or `GH_TOKEN` / `GITHUB_TOKEN` |
+| gitea | `tea` | `tea login --name <host>`, or `GITEA_TOKEN` |
+| gitlab | `glab` | `glab auth login`, or `GITLAB_TOKEN` |
+
+**Check the CLI before a forge MCP server.** A CLI is already authenticated, prints text you can read, and needs no per-call approval. Reach for an MCP server only when the CLI is genuinely unavailable — some self-hosted Gitea instances have no usable `tea` build.
+
+If the CLI is missing or unauthenticated, **name it and how to fix it** — do not silently use a different forge and do not hand-roll an API call:
+
+> `he9-push-pr` needs the GitHub CLI for this repository (`gh`), which is not authenticated. Run `gh auth login`, or set `GH_TOKEN`. I can still draft the PR body without opening it.
 
 ---
 

@@ -249,28 +249,51 @@ if (existsSync(workflowPath) && opencodeVersion) {
   }
 }
 
-// `tracker` is documented as a forge name that resolves to a CLI. A skill that
-// reads the key must therefore be able to answer "which CLI", or the example a
-// user copies documents a value the workflows cannot act on.
-const trackerDoc = join(root, "docs", "adapter.md");
-if (existsSync(trackerDoc)) {
-  const adapterText = readFileSync(trackerDoc, "utf8");
-  const cliTable = adapterText.match(/\| Forge \| Tool \| Auth \|([\s\S]*?)(?=\n\n)/);
-  if (!cliTable) {
-    errors.push('docs/adapter.md: no forge → CLI table, so `tracker` cannot be resolved to a tool');
+// The tracker resolution procedure must live in a *shipped skill*, not only in
+// docs/: `npx skills` installs skills/, so a rule kept in docs/ is invisible to
+// the model and every workflow improvises its own forge. The contract is the one
+// skill all four workflows already load, so that is where it belongs.
+const contractPath = join(skillsDir, "he9-review-contract", "SKILL.md");
+if (existsSync(contractPath)) {
+  const contract = readFileSync(contractPath, "utf8");
+  const section = contract.match(/## Resolving the tracker([\s\S]*?)(?=\n---)/);
+  if (!section) {
+    errors.push(
+      'skills/he9-review-contract/SKILL.md: no "## Resolving the tracker" section — the forge → CLI procedure must ship with the skills',
+    );
   } else {
     // Match the table cell, not the whole document: `gh` also appears in the
-    // auth column and the example, so a plain substring check never fails.
-    for (const cli of ["gh", "tea", "glab"]) {
-      if (!new RegExp("^\\|[^|]+\\|\\s*`" + cli + "`\\s*\\|", "m").test(cliTable[1])) {
-        errors.push(`docs/adapter.md: the forge → CLI table has no row mapping a forge to \`${cli}\``);
+    // auth column, so a plain substring check would never fail.
+    const table = section[1].match(/\| Forge \| CLI \| Auth \|([\s\S]*?)(?=\n\n)/);
+    if (!table) {
+      errors.push(
+        "skills/he9-review-contract: the tracker section has no forge → CLI table, so `tracker` cannot be resolved to a tool",
+      );
+    } else {
+      for (const cli of ["gh", "tea", "glab"]) {
+        if (!new RegExp("^\\|[^|]+\\|\\s*`" + cli + "`\\s*\\|", "m").test(table[1])) {
+          errors.push(`skills/he9-review-contract: the tracker table maps no forge to \`${cli}\``);
+        }
       }
     }
+    // Anchor on the sentence, not the words "forge name": they appear in the
+    // section body too, so a looser match survives deleting the explanation.
+    // Tolerate the bold markers the sentence is written with.
+    if (!/tracker is a \*{0,2}forge\*{0,2}, not a tool/i.test(section[1])) {
+      errors.push("skills/he9-review-contract: does not state that a tracker is a forge name rather than a tool");
+    }
   }
-  // Anchor on the sentence, not the words "forge name": the key table also uses
-// that phrase, so a looser match stays satisfied when the explanation is gone.
-if (!/tracker is a \*?forge\*?, not a tool/i.test(adapterText)) {
-    errors.push('docs/adapter.md: does not state that `tracker` is a forge name rather than a tool');
+}
+
+// Each workflow that reads the key must point at that section, or it resolves a
+// tracker without knowing the procedure exists.
+for (const name of ["he9-start", "he9-push-pr", "he9-review", "he9-debt"]) {
+  const path = join(skillsDir, name, "SKILL.md");
+  if (!existsSync(path)) continue;
+  if (!/Resolving the tracker/.test(readFileSync(path, "utf8"))) {
+    errors.push(
+      `skills/${name}: reads the \`tracker\` key but does not point at the contract's "Resolving the tracker"`,
+    );
   }
 }
 

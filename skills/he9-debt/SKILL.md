@@ -24,7 +24,7 @@ Two backlogs, split by **audience**:
 
 A scan is doubly-checked: a separate reviewer party finds candidates, the responder party verifies and disposes of them, and the human arbitrates the exceptions. A list that both finds and approves its own findings is the weakest possible review.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `docs` (`docs/*.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab)), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `docs` (`docs/*.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab) per this contract's "Resolving the tracker"), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing.
 
 ## Grading
 

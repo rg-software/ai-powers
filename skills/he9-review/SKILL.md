@@ -27,7 +27,7 @@ Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate 
 
 If the invocation text is empty or does not name a target, treat it as `branch` — but if it is ambiguous, state which target you are about to use before reviewing.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab)), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing. Pass the resolved inputs to the reviewer rather than making it re-derive them; `code-review-expert` documents the same defaults.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab) per this contract's "Resolving the tracker"), `contract` (`he9-review-contract`). Probe for paths; if one is absent, skip that step rather than guessing. Pass the resolved inputs to the reviewer rather than making it re-derive them; `code-review-expert` documents the same defaults.
 
 ## Mode: review a target
 

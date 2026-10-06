@@ -12,7 +12,7 @@ Goal: identify the current task and prepare a feature branch for it.
 
 **Invocation.** The task source is the text that accompanied this skill — the words after the skill name. It may be a tracked issue number, a debt id (`TD-###`), the name of an active change, or a freeform description. When the text is empty (or names nothing recognizable), derive the task in Step 1 instead.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab)). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
+**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `conventions` (`openspec/conventions.md`), `debt` (`openspec/technical-debt.md`), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab) per this contract's "Resolving the tracker"). Probe for paths; if one is absent, skip that step rather than guessing. Branch naming rules live in the resolved conventions file when present.
 
 ## Step 1. Identify the task source
 
