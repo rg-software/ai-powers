@@ -35,7 +35,7 @@ Goal: identify the current task and prepare a feature branch for it.
 
 - Confirm the change exists and summarize its goal to the user.
 - Treat the change as the current context.
-- Implementation proceeds via the `opsx-apply-change` skill on this branch.
+- Implementation proceeds via the OpenSpec apply-change workflow (`openspec-apply-change`) on this branch.
 - Derive the branch name per the conventions: `{user}/opsx-{change-name}`.
 
 ## Step 2c. Ad-hoc task

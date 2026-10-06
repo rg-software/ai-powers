@@ -78,8 +78,9 @@ Copy `examples/powers.jsonc` and `examples/reviewer-agent.jsonc` as starting poi
 - Replace the old installer (`install/install.ps1`, `install/install.sh`, now removed) with `npx skills add` above, then delete what it left behind:
   - `~/.config/opencode/commands/he9_*.md` — the old command files, now skills
   - `~/.agents/skills/{code-review-expert,receiving-code-review,he9-review-contract}` — the old install target; `npx skills` uses `~/.config/opencode/skills/`, and a duplicate ID in the older location is shadowed but confusing
-- `npx skills update -g` refreshes skills only. Commands in `ci/` are not installed on machines and update with the pinned `AI_POWERS_REF`.
-- Restart opencode if a newly installed skill does not appear; opencode reloads config and commands on its own in recent versions.
+- `npx skills update -g` refreshes skills only. The command in `ci/` is not installed on machines and updates with the pinned `AI_POWERS_REF`.
+- Restart opencode if a newly installed skill does not appear; recent versions reload config and skills on their own.
+- Invoking a skill by name (`/he9-review worktree`) attaches it and keeps the text after the name as the input, but only when the composer resolves it as an attachment. Typed as plain text with no attachment, it reaches the model as prose and the model may or may not load the skill. Each workflow says what to read, so this degrades rather than breaks.
 
 ## License
 
