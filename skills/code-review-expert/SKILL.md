@@ -34,7 +34,7 @@ The adapter overrides the defaults below. Probe each path; **a missing path is s
 | `baseBranch` | `origin/HEAD`; ask if unset | yes — scopes the diff |
 | `debt` | `openspec/technical-debt.md` if present | only to check a candidate is already recorded |
 | `docs` | `docs/*.md` if present | yes — for docs → code accuracy |
-| `tracker` | auto: forge MCP, else git remote host, else ask | no — the calling workflow files findings |
+| `tracker` | auto: the git remote host's forge, else ask | no — the calling workflow uses it |
 | `contract` | `he9-review-contract` | no — loaded above; the key only names it |
 
 The last two are listed so an adapter key is never unrecognized: they belong to the surrounding workflows, not to grading a diff.

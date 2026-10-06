@@ -8,7 +8,10 @@
 //   specs      : openspec/specs/*/spec.md     (if present)
 //   debt       : openspec/technical-debt.md   (if present)
 //   docs       : docs/*.md                    (if present)
-//   tracker    : auto — configured forge MCP, else the git remote host, else ask
+//   tracker    : auto — explicit here, else the git remote host, else ask.
+//                A forge name, not a tool: "github" | "gitea" | "gitlab".
+//                Resolved to a CLI (gh / tea / glab). Set it when the issues
+//                for a repo live somewhere other than its git remote.
 //   contract   : he9-review-contract
 //
 // Create this file only to OVERRIDE one of those. Anything you omit is probed.

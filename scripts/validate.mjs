@@ -249,6 +249,31 @@ if (existsSync(workflowPath) && opencodeVersion) {
   }
 }
 
+// `tracker` is documented as a forge name that resolves to a CLI. A skill that
+// reads the key must therefore be able to answer "which CLI", or the example a
+// user copies documents a value the workflows cannot act on.
+const trackerDoc = join(root, "docs", "adapter.md");
+if (existsSync(trackerDoc)) {
+  const adapterText = readFileSync(trackerDoc, "utf8");
+  const cliTable = adapterText.match(/\| Forge \| Tool \| Auth \|([\s\S]*?)(?=\n\n)/);
+  if (!cliTable) {
+    errors.push('docs/adapter.md: no forge → CLI table, so `tracker` cannot be resolved to a tool');
+  } else {
+    // Match the table cell, not the whole document: `gh` also appears in the
+    // auth column and the example, so a plain substring check never fails.
+    for (const cli of ["gh", "tea", "glab"]) {
+      if (!new RegExp("^\\|[^|]+\\|\\s*`" + cli + "`\\s*\\|", "m").test(cliTable[1])) {
+        errors.push(`docs/adapter.md: the forge → CLI table has no row mapping a forge to \`${cli}\``);
+      }
+    }
+  }
+  // Anchor on the sentence, not the words "forge name": the key table also uses
+// that phrase, so a looser match stays satisfied when the explanation is gone.
+if (!/tracker is a \*?forge\*?, not a tool/i.test(adapterText)) {
+    errors.push('docs/adapter.md: does not state that `tracker` is a forge name rather than a tool');
+  }
+}
+
 // --- project input keys -----------------------------------------------------
 // The set of adapter keys is stated in three places: KNOWN_INPUT_KEYS above,
 // the table code-review-expert documents for the model, and the annotated

@@ -11,7 +11,7 @@ The `he9-*` skills need to know a project's base branch, where its conventions, 
 | `specs` | `openspec/specs/*/spec.md` if present | `specs` |
 | `debt` | `openspec/technical-debt.md` if present | `debt` |
 | `docs` | `docs/*.md` if present | `docs` |
-| `tracker` | auto: a configured forge MCP, else the git remote host, else ask | `tracker` |
+| `tracker` | auto: the git remote host's forge, else ask | `tracker` (a forge name: `github`, `gitea`, `gitlab`) |
 | `contract` | `he9-review-contract` | `contract` |
 
 A probed path that does not exist is **skipped**, never guessed: if a project has no specs directory, the steps that would read specs simply do not run, and the command says so.
@@ -26,13 +26,35 @@ Standard-layout projects need no adapter at all. Create it when a project deviat
 
 ## Tracker
 
-`tracker` selects the tooling the **local skills** use for issues and pull requests:
+`tracker` selects the forge the **local skills** use for issues and pull requests:
 
 - `he9-start`, `he9-debt` list/open issues
 - `he9-push-pr` creates and finds pull requests
 - `he9-review respond` reads PR review comments
 
-Auto-detection order: a configured forge MCP (e.g. a `gitea` MCP server) → the git remote host → ask the user once. Set `tracker` explicitly only when that is wrong or ambiguous (e.g. a self-hosted forge with an unrecognisable hostname).
+### How it resolves
+
+A tracker is a *forge*, not a tool. Resolution picks the forge, then picks a CLI for it:
+
+1. **Explicit** — `tracker` in `.opencode/powers.jsonc` wins: `"gitea"`, `"github"`, or `"gitlab"`.
+2. **Git remote host** — read `git remote get-url origin` and match the host. `github.com` → github, a host matching `gitlab` → gitlab, anything else → ask.
+3. **Ask** — one question, then offer to record the answer in the adapter.
+
+Having chosen the forge, use a CLI rather than an MCP server. A forge CLI is already authenticated, prints text a model can read, and needs no per-call approval:
+
+| Forge | Tool | Auth |
+|-------|------|------|
+| github | `gh` | `gh auth login`, or `GH_TOKEN` / `GITHUB_TOKEN` |
+| gitea | `tea` | `tea login --name <host>`, or `GITEA_TOKEN` |
+| gitlab | `glab` | `glab auth login`, or `GITLAB_TOKEN` |
+
+If the CLI is missing or unauthenticated, **say which one and how to fix it** rather than falling back to a different forge or inventing an API call:
+
+> `he9-push-pr` needs the GitHub CLI for this repository (`gh`), which is not authenticated. Run `gh auth login`, or set `GH_TOKEN`. I can still show you the draft PR body without opening it.
+
+Prefer a configured forge MCP server only when the CLI is genuinely unavailable — some self-hosted Gitea instances have no usable `tea` build. Check the CLI first, since that is the common case.
+
+Set `tracker` explicitly when auto-detection is wrong or ambiguous: a self-hosted forge on an unrecognisable host, or a repo whose issues live somewhere other than its git remote.
 
 ## What the adapter does not control
 
@@ -45,7 +67,9 @@ The reviewer's identity is not configurable here and not matched by user name. T
 | Variable | Used by | Meaning |
 |----------|---------|---------|
 | `REVIEWER_MODEL` | `reviewer` subagent | model for local cross-model review; see "Local reviewer agent" below |
-| `GITEA_TOKEN` | `he9-push-pr`, `he9-debt` promote | tracker auth |
+| `GH_TOKEN` / `GITHUB_TOKEN` | any github tracker call | `gh` auth, when not using `gh auth login` |
+| `GITEA_TOKEN` | any gitea tracker call | `tea` auth, when not using `tea login` |
+| `GITLAB_TOKEN` | any gitlab tracker call | `glab` auth, when not using `glab auth login` |
 | `OPENCODE_CONFIG_DIR` | optional | override the global config dir opencode reads |
 
 CI-only variables and secrets are listed in `docs/ci.md`.
