@@ -251,10 +251,29 @@ jobs:
           set -euo pipefail
           pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 2.0.25)"
           version="${OPENCODE_VERSION:-$pinned}"
+
+          # The runner image ships its own opencode, which owns the `opencode`
+          # bin link. 1.x installed cleanly only because the package name
+          # matched, so npm updated it in place; V2 ships under a different name
+          # and collides with the link it does not own (npm EEXIST). Drop the
+          # incumbent first, then install the pinned version.
+          npm uninstall -g @opencode/cli opencode-ai >/dev/null 2>&1 || true
+          prefix="$(npm prefix -g)"
+          rm -f "$prefix/bin/opencode" "$prefix/bin/opencode2"
+
           # V2 ships as a different npm package than 1.x. Keeping the name in one
           # place here means the version file stays a bare version string.
           echo "installing @opencode/cli@${version}"
           npm i -g "@opencode/cli@${version}"
+
+          # Prove the binary exists and is the version we asked for. Without this
+          # a bad install fails later, in the run step, with no clue why.
+          installed="$(opencode --version 2>&1 | head -1)"
+          echo "installed: ${installed}"
+          case "$installed" in
+            *"${version}"*) ;;
+            *) echo "expected opencode ${version}, got: ${installed}"; exit 1 ;;
+          esac
 
       - name: Generate PR diff
         if: steps.setupenv.outputs.hit == 'true'

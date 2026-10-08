@@ -245,6 +245,22 @@ if (existsSync(workflowPath) && opencodeVersion) {
     );
   }
 
+  // The runner image ships its own opencode and owns the `opencode` bin link.
+  // Installing a differently-named package over it fails with npm EEXIST, and
+  // that failure surfaces only as a non-zero exit with no diagnostic. So the
+  // install must clear the incumbent first, and must then prove the binary is
+  // the version it asked for.
+  if (!/npm uninstall -g[^\n]*@opencode\/cli/.test(workflow)) {
+    errors.push(
+      "ci/pull-request-review.yml: does not remove any pre-existing opencode before installing — the runner image owns the `opencode` bin link, so installing @opencode/cli over it fails with EEXIST",
+    );
+  }
+  if (!/opencode --version/.test(workflow)) {
+    errors.push(
+      "ci/pull-request-review.yml: does not verify `opencode --version` after installing — a bad install otherwise fails later with no clue why",
+    );
+  }
+
   // The review run must resolve config and skills only from what this workflow
   // copies under ~/.config/opencode. V2 removed OPENCODE_DISABLE_EXTERNAL_SKILLS
   // (verified: it is ignored while .agents/skills stays visible), so isolation
