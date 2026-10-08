@@ -134,11 +134,10 @@ A special kind of a non-spec design document is an "ADR": when a major architect
 General rules described in `AGENTS.md` provide _declarative_ guidance: they set certain goals to follow, but do not provide any step-by-step recipes. One important aim of system rules is to keep the project well-organized and consistent. In particular, it must be stated that the documentation and the code must be in sync. It might also be advisable to enforce OpenSpec-driven flows as shown in the following example:
 
 ```markdown
-- Work flows through OpenSpec changes first; implementation does not run ahead of the plan.
-- Use `openspec/specs/*` as the canonical source for technical/runtime documentation.
-- For project-level conventions, examine the `context` section of `openspec/config.yaml`.
-- For system-specific tasks, read the relevant capability spec under `openspec/specs/<capability>/spec.md` (for example: `world-map`, `player-prefs`, `factories`, `rails-tile-system`).
-- Use `openspec/notes/*` as supplemental context only for non-normative ideas and backlog notes.
+- Work flows through OpenSpec changes first.
+- Use `openspec/specs/*` as the canonical source for technical documentation.
+- For project-level conventions, examine `openspec/conventions.md`.
+- For system-specific tasks, read the relevant capability spec under `openspec/specs/*`.
 ```
 
 ## Code reviews on PR
