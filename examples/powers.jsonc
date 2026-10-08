@@ -18,11 +18,13 @@
 // Create this file only to OVERRIDE one of those. Anything you omit is probed.
 // Nothing here is machine-specific (tokens and hosts come from env / the forge).
 {
-  // Set this to whatever your PRs actually target. Never assume "main".
-  // "baseBranch": "my-integration-branch",
-  // "conventions": "docs/conventions.md",
-  // "specs": "specs/*/spec.md",
-  // "debt": "openspec/tech-debt.md",
+  // Every value below DIFFERS from the probed default shown above, so each
+  // one is visibly an override rather than a suggested default. Keep it that
+  // way: an example that repeats the default teaches the wrong thing.
+  // "baseBranch": "my-integration-branch",   // default: origin/HEAD
+  // "conventions": "docs/conventions.md",     // default: openspec/conventions.md
+  // "specs": "specs/*/spec.md",               // default: openspec/specs/*/spec.md
+  // "debt": "openspec/tech-debt.md",          // default: openspec/technical-debt.md
   // "docs": ["docs/*.md", "design/*.md"],
   // "tracker": "github",
   // "contract": "he9-review-contract"
