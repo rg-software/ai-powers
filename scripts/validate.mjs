@@ -83,10 +83,10 @@ if (!existsSync(skillsDir)) {
 
 // --- content rules ----------------------------------------------------------
 // Every markdown body ai-powers ships, whether it ships as a skill
-// (skills/*/SKILL.md) or as a server-only command (ci/commands/*.md). The
-// `SKILL.md` filter must not apply to the command dir: a command file is
-// named for its command, so collecting only SKILL.md there silently skipped
-// the server command and every rule below with it.
+// (skills/*/SKILL.md) or as a server-only agent (ci/agents/*.md). The
+// `SKILL.md` filter must not apply to the agent dir: an agent file is named
+// for its agent id, so collecting only SKILL.md there silently skipped the
+// server agent and every rule below with it.
 const contentFiles = [];
 {
   const walkSkills = (current) => {
@@ -98,15 +98,15 @@ const contentFiles = [];
   };
   if (existsSync(join(root, "skills"))) walkSkills(join(root, "skills"));
 
-  const commandDir = join(root, "ci", "commands");
-  if (existsSync(commandDir)) {
-    for (const entry of readdirSync(commandDir)) {
-      if (entry.endsWith(".md")) contentFiles.push(join(commandDir, entry));
+  const agentDir = join(root, "ci", "agents");
+  if (existsSync(agentDir)) {
+    for (const entry of readdirSync(agentDir)) {
+      if (entry.endsWith(".md")) contentFiles.push(join(agentDir, entry));
     }
   }
 }
-if (!contentFiles.some((path) => rel(path).startsWith("ci/commands/"))) {
-  errors.push("ci/commands/ has no .md file — the server-only review command is missing");
+if (!contentFiles.some((path) => rel(path).startsWith("ci/agents/"))) {
+  errors.push("ci/agents/ has no .md file — the server-only review agent is missing");
 }
 
 for (const path of contentFiles) {
@@ -127,8 +127,16 @@ for (const path of contentFiles) {
   // invocation text when it has a target, or the repository state when it does
   // not. `$ARGUMENTS` is legitimate only in a command, where opencode
   // substitutes it for real.
-  const isCommand = rel(path).startsWith("ci/commands/");
-  if (!isCommand) {
+  //
+  // Since V2 there is no command: `opencode run --command` is gone and the
+  // server review is an agent, whose input arrives as the user message. So the
+  // exemption is keyed on the agent dir, and an agent body that still reaches
+  // for `$ARGUMENTS` is an error — nothing substitutes it any more.
+  const isAgent = rel(path).startsWith("ci/agents/");
+  if (isAgent && text.includes("$ARGUMENTS")) {
+    errors.push(`${rel(path)}: uses $ARGUMENTS — V2 agents receive input as the user message; nothing substitutes it`);
+  }
+  if (!isAgent) {
     // A skill that advertises an invocation target in its description is a
     // workflow: it takes input from the text following the skill name, so it
     // must say so in the body. A reference skill (contract, checklists) has no
@@ -231,33 +239,45 @@ if (existsSync(workflowPath) && opencodeVersion) {
       `ci/pull-request-review.yml: fallback pins opencode ${fallback[1]} but ci/opencode-version says ${opencodeVersion}`,
     );
   }
-  if (!/npm i -g "opencode-ai@/.test(workflow)) {
+  if (!/npm i -g "@opencode\/cli@/.test(workflow)) {
     errors.push(
-      'ci/pull-request-review.yml: does not install opencode-ai — the 1.x CLI package (2.x ships as @opencode/cli)',
+      'ci/pull-request-review.yml: does not install @opencode/cli — the V2 CLI package (1.x shipped as opencode-ai)',
     );
   }
 
   // The review run must resolve config and skills only from what this workflow
-  // copies under ~/.config/opencode. Each flag covers a different tree, and
-  // dropping one is silent: the review still runs, just with whatever the
-  // checkout carried. They are coupled — disabling external skills also hides
-  // ~/.agents/skills, so the copy destination has to move with it.
-  const requiredEnv = ["OPENCODE_DISABLE_PROJECT_CONFIG", "OPENCODE_DISABLE_EXTERNAL_SKILLS"];
-  for (const name of requiredEnv) {
-    if (!new RegExp(`${name}:\\s*"1"`).test(workflow)) {
-      errors.push(`ci/pull-request-review.yml: the review run does not set ${name}=1`);
-    }
+  // copies under ~/.config/opencode. V2 removed OPENCODE_DISABLE_EXTERNAL_SKILLS
+  // (verified: it is ignored while .agents/skills stays visible), so isolation
+  // is two things instead of two flags — and dropping either is silent, because
+  // the review still runs, just with whatever the checkout carried.
+  //
+  // 1. The removal step deletes the trees a PR could hide a same-id skill in.
+  //    Nothing to impersonate with.
+  // 2. The skill allowlist denies every skill not named, which covers any
+  //    discovery source we have not enumerated.
+  if (!/OPENCODE_DISABLE_PROJECT_CONFIG:\s*"1"/.test(workflow)) {
+    errors.push("ci/pull-request-review.yml: the review run does not set OPENCODE_DISABLE_PROJECT_CONFIG=1");
+  }
+  if (!/rm -rf \.agents \.claude \.opencode/.test(workflow)) {
+    errors.push(
+      "ci/pull-request-review.yml: does not remove .agents/.claude/.opencode from the checkout — V2 walks .agents/skills unconditionally, so a PR can ship a same-id skill that shadows the reviewer",
+    );
+  }
+  if (!/"action":\s*"skill",\s*"resource":\s*"\*",\s*"effect":\s*"deny"/.test(workflow)) {
+    errors.push(
+      'ci/pull-request-review.yml: no skill allowlist — expected a permissions rule denying skill "*"',
+    );
   }
 
   const copiesSkillsToExternal = /cp -R "\$powers\/skills\/\." "\$HOME\/\.agents\/skills\/"/.test(workflow);
   if (copiesSkillsToExternal) {
     errors.push(
-      "ci/pull-request-review.yml: copies skills into ~/.agents/skills, which OPENCODE_DISABLE_EXTERNAL_SKILLS hides — put them in ~/.config/opencode/skills",
+      "ci/pull-request-review.yml: copies skills into ~/.agents/skills, a global discovery scope V2 always scans and the removal step cannot reach — put them in ~/.config/opencode/skills",
     );
   }
   if (!/cp -R "\$powers\/skills\/\." "\$HOME\/\.config\/opencode\/skills\/"/.test(workflow)) {
     errors.push(
-      "ci/pull-request-review.yml: does not copy the review skills into ~/.config/opencode/skills, the only location still discovered once external skills are disabled",
+      "ci/pull-request-review.yml: does not copy the review skills into ~/.config/opencode/skills, the global scope V2 discovers unconditionally",
     );
   }
 }
@@ -403,13 +423,19 @@ if (existsSync(examplePath)) {
 }
 
 // --- layout -----------------------------------------------------------------
-// `he9_pr_review` is dispatched by name from CI (`opencode run --command`), so
-// it must stay a command. It must therefore not exist as a skill, where that
-// lookup cannot find it.
+// `he9_pr_review` is dispatched by name from CI (`opencode run --agent`), so
+// it must stay an agent under ci/agents/. It must therefore not exist as a
+// skill, where that lookup cannot find it — the same trap as the 1.x `--command`
+// version of this rule, which went unsound when commands became agents.
 const serverSkill = join(root, "skills", "he9-pr-review", "SKILL.md");
 if (existsSync(serverSkill)) {
   errors.push(
-    "skills/he9-pr-review: the server-only review command is invoked via `opencode run --command` and must not be a skill",
+    "skills/he9-pr-review: the server-only review agent is dispatched via `opencode run --agent` and must not be a skill",
+  );
+}
+if (!/opencode run[\s\S]{0,200}--agent he9_pr_review/.test(readFileSync(join(root, "ci", "pull-request-review.yml"), "utf8"))) {
+  errors.push(
+    "ci/pull-request-review.yml: does not dispatch the review with `opencode run --agent he9_pr_review`",
   );
 }
 

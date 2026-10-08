@@ -14,12 +14,15 @@
 # installed from the registry. If you add a step, review it against this rule
 # before merging.
 #
-# The review run additionally sets OPENCODE_DISABLE_PROJECT_CONFIG and
-# OPENCODE_DISABLE_EXTERNAL_SKILLS, so the reviewer resolves configuration and
-# skills only from the copies this workflow places under ~/.config/opencode.
-# Without them a checkout file (an .opencode/ or .agents/ directory) would join
+# The review run resolves configuration and skills only from the copies this
+# workflow places under ~/.config/opencode. OpenCode V2 has no equivalent of
+# 1.x's OPENCODE_DISABLE_EXTERNAL_SKILLS - it was verified to be ignored while
+# .agents/skills stayed visible - so isolation rests on two things instead: the
+# "Remove untrusted agent, skill and config trees" step, which deletes
+# .agents/, .claude/, .opencode/ and opencode.json* from the checkout, and the
+# skill allowlist in opencode-ci.json. Without them a checkout file would join
 # the review's inputs. That is a correctness concern before it is a security
-# one — a review should grade against the project it is reviewing, not against
+# one - a review should grade against the project it is reviewing, not against
 # whatever that checkout happens to carry.
 
 name: AI PR Reviewer
@@ -56,7 +59,7 @@ jobs:
           fetch-depth: 1
 
       # Clone ai-powers first: it supplies the trigger script, the review
-      # command, the review skills, and the shared contract. Trusted because it
+      # agent, the review skills, and the shared contract. Trusted because it
       # is a reviewed revision of our own repo, never anything from the PR.
       - name: Clone ai-powers (trusted, pinned)
         id: powers
@@ -103,6 +106,30 @@ jobs:
           ref: ${{ steps.setupenv.outputs.checkoutRef }}
           fetch-depth: 1
 
+      - name: Remove untrusted agent, skill and config trees
+        if: steps.setupenv.outputs.hit == 'true'
+        run: |
+          set -euo pipefail
+          # OpenCode V2 dropped OPENCODE_DISABLE_EXTERNAL_SKILLS and always walks
+          # .agents/skills and .claude/skills, and a project .opencode/skills
+          # outranks the global copy. A pull request could therefore ship a
+          # same-id skill that shadows the real reviewer - which is exactly how
+          # PR #339 lost its review. Deleting the trees removes the ability to
+          # impersonate; the skill allowlist in opencode-ci.json then covers
+          # every other discovery source.
+          #
+          # This deletes only agent/skill/config trees. Source files stay: the
+          # reviewer has to read them.
+          rm -rf .agents .claude .opencode
+          rm -f  opencode.json opencode.jsonc
+          leftover="$(ls -A | grep -E '^\.(agents|claude|opencode)$|^opencode\.jsonc?$' || true)"
+          if [ -n "$leftover" ]; then
+            echo "REFUSING TO REVIEW - untrusted trees survived removal:"
+            echo "$leftover"
+            exit 1
+          fi
+          echo "untrusted agent/skill/config trees removed"
+
       - name: Fetch PR head branch
         if: steps.setupenv.outputs.hit == 'true'
         run: |
@@ -118,22 +145,18 @@ jobs:
         if: steps.setupenv.outputs.hit == 'true'
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.config/opencode/commands" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
+          mkdir -p "$HOME/.config/opencode/agents" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
           powers="$HOME/.gitea/trusted/ai-powers"
 
-          # The server-only review command -> global commands dir (loaded even when
-          # project config is disabled). It must stay a command: the run below
-          # dispatches it via `opencode run --command`.
-          # The top-level commands/ copy is kept so a pinned older ai-powers
-          # revision, which shipped the local workflows there, still works.
-          [ -d "$powers/commands" ] && cp "$powers/commands/"*.md "$HOME/.config/opencode/commands/" || true
-          [ -d "$powers/ci/commands" ] && cp "$powers/ci/commands/"*.md "$HOME/.config/opencode/commands/" || true
+          # The server-only review agent -> the global agents dir (loaded even when
+          # project config is disabled). V2 removed `opencode run --command`, so the
+          # review is dispatched by agent name instead. The file name is the agent
+          # id, which is why this stays he9_pr_review.md.
+          [ -d "$powers/ci/agents" ] && cp "$powers/ci/agents/"*.md "$HOME/.config/opencode/agents/" || true
 
           # Skills (reviewer, responder, contract) -> the opencode config dir, NOT
-          # ~/.agents/skills. The run below sets OPENCODE_DISABLE_EXTERNAL_SKILLS,
-          # which turns off the .agents/.claude walk entirely, so skills placed
-          # there would be invisible. The config dir is scanned unconditionally,
-          # and after the external walk, so these win by precedence.
+          # ~/.agents/skills. That dir is one of the global discovery scopes V2
+          # always scans, so these are present no matter what the checkout contains.
           cp -R "$powers/skills/." "$HOME/.config/opencode/skills/"
 
           # The review-text extractor ships with ai-powers too.
@@ -142,64 +165,74 @@ jobs:
           # Sanity: everything the review run depends on must be present.
           [ -f "$HOME/.config/opencode/skills/he9-review-contract/SKILL.md" ]
           [ -f "$HOME/.config/opencode/skills/code-review-expert/SKILL.md" ]
-          [ -f "$HOME/.config/opencode/commands/he9_pr_review.md" ]
+          [ -f "$HOME/.config/opencode/agents/he9_pr_review.md" ]
           [ -f "$powers/ci/scripts/extract-review-text.js" ]
 
           # Write a locked-down permissions config for the review agent. This is
           # generated in-workflow (never read from the PR checkout) so a PR
-          # cannot weaken it. The agent only needs read-only git/file tools for
-          # review; bash is restricted to read-only git/listing commands, and
-          # network + write tools are denied outright so PR-injected content
-          # cannot exfiltrate the OpenRouter key via tools.
+          # cannot weaken it. V2 shape: an ordered `permissions` array, last
+          # match wins, so the broad rules come first and the exceptions after.
+          #
+          # Three groups:
+          #  - skill: an allowlist. `deny` hides a skill from the model and
+          #    rejects loading it. This cannot stop a PR impersonating an
+          #    allowed id - that is what the removal step is for - but it does
+          #    stop any skill we did not name, including sources added later.
+          #  - shell: read-only git/listing. V2 renamed `bash` to `shell`.
+          #  - everything else: denied, so PR-injected content cannot exfiltrate
+          #    the OpenRouter key through a tool.
           cat > "$HOME/.gitea/trusted/opencode-ci.json" <<'EOF'
           {
             "$schema": "https://opencode.ai/config.json",
-            "permission": {
-              "*": "allow",
-              "bash": {
-                "*": "deny",
-                "git *": "allow",
-                "git diff*": "allow",
-                "git show*": "allow",
-                "git status*": "allow",
-                "git log*": "allow",
-                "git ls-files*": "allow",
-                "git ls-tree*": "allow",
-                "git cat-file*": "allow",
-                "git rev-parse*": "allow",
-                "git name-rev*": "allow",
-                "git push*": "deny",
-                "git fetch*": "deny",
-                "git pull*": "deny",
-                "git remote*": "deny",
-                "git add*": "deny",
-                "git commit*": "deny",
-                "git checkout*": "deny",
-                "git reset*": "deny",
-                "rg *": "allow",
-                "grep *": "allow",
-                "ls *": "allow",
-                "node *": "deny",
-                "echo *": "deny",
-                "env *": "deny",
-                "printenv *": "deny",
-                "export *": "deny",
-                "curl *": "deny",
-                "wget *": "deny",
-                "nc *": "deny"
-              },
-              "webfetch": "deny",
-              "websearch": "deny",
-              "edit": "deny",
-              "write": "deny",
-              "question": "deny"
-            }
+            "permissions": [
+              { "action": "skill", "resource": "*", "effect": "deny" },
+              { "action": "skill", "resource": "he9-review-contract", "effect": "allow" },
+              { "action": "skill", "resource": "code-review-expert", "effect": "allow" },
+
+              { "action": "shell", "resource": "*", "effect": "deny" },
+              { "action": "shell", "resource": "git *", "effect": "allow" },
+              { "action": "shell", "resource": "git diff*", "effect": "allow" },
+              { "action": "shell", "resource": "git show*", "effect": "allow" },
+              { "action": "shell", "resource": "git status*", "effect": "allow" },
+              { "action": "shell", "resource": "git log*", "effect": "allow" },
+              { "action": "shell", "resource": "git ls-files*", "effect": "allow" },
+              { "action": "shell", "resource": "git ls-tree*", "effect": "allow" },
+              { "action": "shell", "resource": "git cat-file*", "effect": "allow" },
+              { "action": "shell", "resource": "git rev-parse*", "effect": "allow" },
+              { "action": "shell", "resource": "git name-rev*", "effect": "allow" },
+              { "action": "shell", "resource": "git push*", "effect": "deny" },
+              { "action": "shell", "resource": "git fetch*", "effect": "deny" },
+              { "action": "shell", "resource": "git pull*", "effect": "deny" },
+              { "action": "shell", "resource": "git remote*", "effect": "deny" },
+              { "action": "shell", "resource": "git add*", "effect": "deny" },
+              { "action": "shell", "resource": "git commit*", "effect": "deny" },
+              { "action": "shell", "resource": "git checkout*", "effect": "deny" },
+              { "action": "shell", "resource": "git reset*", "effect": "deny" },
+              { "action": "shell", "resource": "rg *", "effect": "allow" },
+              { "action": "shell", "resource": "grep *", "effect": "allow" },
+              { "action": "shell", "resource": "ls *", "effect": "allow" },
+              { "action": "shell", "resource": "node *", "effect": "deny" },
+              { "action": "shell", "resource": "echo *", "effect": "deny" },
+              { "action": "shell", "resource": "env *", "effect": "deny" },
+              { "action": "shell", "resource": "printenv *", "effect": "deny" },
+              { "action": "shell", "resource": "export *", "effect": "deny" },
+              { "action": "shell", "resource": "curl *", "effect": "deny" },
+              { "action": "shell", "resource": "wget *", "effect": "deny" },
+              { "action": "shell", "resource": "nc *", "effect": "deny" },
+
+              { "action": "webfetch", "resource": "*", "effect": "deny" },
+              { "action": "websearch", "resource": "*", "effect": "deny" },
+              { "action": "edit", "resource": "*", "effect": "deny" },
+              { "action": "question", "resource": "*", "effect": "deny" },
+              { "action": "subagent", "resource": "*", "effect": "deny" },
+              { "action": "external_directory", "resource": "*", "effect": "deny" }
+            ]
           }
           EOF
           node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))" && echo "opencode-ci.json is valid JSON"
 
           echo "opencode_config=$HOME/.gitea/trusted/opencode-ci.json" >> "$GITHUB_OUTPUT"
-          ls -la "$HOME/.config/opencode/commands" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
+          ls -la "$HOME/.config/opencode/agents" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
 
       - name: Setup Node.js
         if: steps.setupenv.outputs.hit == 'true'
@@ -216,10 +249,12 @@ jobs:
           OPENCODE_VERSION: ${{ vars.OPENCODE_VERSION }}
         run: |
           set -euo pipefail
-          pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 1.18.34)"
+          pinned="$(cat "$HOME/.gitea/trusted/ai-powers/ci/opencode-version" 2>/dev/null || echo 2.0.25)"
           version="${OPENCODE_VERSION:-$pinned}"
-          echo "installing opencode-ai@${version}"
-          npm i -g "opencode-ai@${version}"
+          # V2 ships as a different npm package than 1.x. Keeping the name in one
+          # place here means the version file stays a bare version string.
+          echo "installing @opencode/cli@${version}"
+          npm i -g "@opencode/cli@${version}"
 
       - name: Generate PR diff
         if: steps.setupenv.outputs.hit == 'true'
@@ -242,13 +277,15 @@ jobs:
           OPENCODE_CONFIG: ${{ steps.trusted.outputs.opencode_config }}
           OPENCODE_DISABLE_AUTOUPDATE: "1"
           # Keep the review grounded in what ai-powers provides rather than what
-          # the checkout happens to contain. Together these two mean the review
-          # reads only the command and skills copied above: the first covers
-          # .opencode/ config and skills, the second the .agents/ and .claude/
-          # trees. Both are cheap on our own repos and keep a stray file from
-          # silently becoming part of a posted review.
+          # the checkout happens to contain. The "Remove untrusted agent, skill
+          # and config trees" step deleted .agents/, .claude/, .opencode/ and
+          # opencode.json* from the workspace, so there is nothing project-scoped
+          # left to load; this flag is the second layer over that.
+          #
+          # V2 has no equivalent of 1.x's OPENCODE_DISABLE_EXTERNAL_SKILLS - it
+          # was verified to be ignored, while .agents/skills stayed visible. The
+          # skill allowlist in opencode-ci.json is what replaces it.
           OPENCODE_DISABLE_PROJECT_CONFIG: "1"
-          OPENCODE_DISABLE_EXTERNAL_SKILLS: "1"
         run: |
           # Read and truncate the diff to avoid blowing up context
           DIFF_CONTENT="(no diff available)"
@@ -260,7 +297,7 @@ jobs:
             fi
           fi
 
-          # Construct the PR context injected into the review command ($ARGUMENTS)
+          # Construct the PR context passed to the review agent as the user message
           PROMPT="### PULL REQUEST DATA
           Number: ${ENTITY_NUMBER}
           Title: ${ENTITY_TITLE}
@@ -277,13 +314,18 @@ jobs:
           ### TRIGGERING COMMAND
           ${COMMENT_BODY}"
 
-          # Run the review command headless. Stream events as JSON so the final
+          # Run the review agent headless. Stream events as JSON so the final
           # assistant text can be extracted cleanly for the PR comment.
+          # --standalone: V2 otherwise discovers or starts a shared per-user
+          # background server. On a runner there is no user session to inherit,
+          # and the shared server owns config and permissions, so a private
+          # server is the only way to be sure this run uses the config above.
           # Note: this step runs under `bash -e` (act default), so a failing
           # opencode run must not abort the script before diagnostics are printed.
           set +e
           opencode run \
-            --command he9_pr_review \
+            --standalone \
+            --agent he9_pr_review \
             --model "openrouter/${AI_MODEL_NAME}" \
             --auto \
             --format json \

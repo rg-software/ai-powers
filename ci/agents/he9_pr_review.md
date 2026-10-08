@@ -1,20 +1,17 @@
 ---
 description: "Server-side code review for a pull request, executed by the AI PR Reviewer workflow"
+mode: all
 ---
 
 # Do code review for a PR
 
 Goal: review the changes introduced by a pull request, including maintainability and local architecture concerns within the touched scope.
 
-You are running **non-interactive, on a CI runner**. The PR data and diff are injected below; treat them as authoritative.
-
-## Input
-
-$ARGUMENTS
+You are running **non-interactive, on a CI runner**. The PR data and diff arrive in the user message; treat them as authoritative. In V2 there is no command-template placeholder — the user message is the entire input, so read it as such and do not wait for substituted arguments.
 
 ## Step 1. Ensure PR context
 
-- The PR data (Number, Title, Description, Head SHA, Base SHA, Commits) and the diff are provided above.
+- The PR data (Number, Title, Description, Head SHA, Base SHA, Commits) and the diff are in the user message.
 - If the diff was truncated, run `git diff --name-status <Base SHA> <Head SHA>` to get the complete change list.
 
 ## Step 2. Scope
