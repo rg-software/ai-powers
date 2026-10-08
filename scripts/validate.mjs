@@ -272,6 +272,31 @@ if (existsSync(workflowPath) && opencodeVersion) {
     );
   }
 
+  // The permissions config is written by a quoted heredoc, so everything between
+  // the markers lands in opencode-ci.json verbatim. A `#` comment placed inside
+  // that block makes it unparseable — the V2 reviewer caught exactly that on a
+  // real run, and the workflow's own `node -e ... && echo` check failed to stop
+  // it. Parse the block here so it cannot ship.
+  const heredoc = workflow.match(/<<'EOF'\n([\s\S]*?)\n\s*EOF/);
+  if (!heredoc) {
+    errors.push("ci/pull-request-review.yml: no quoted heredoc found to write the permissions config");
+  } else {
+    const startLine = workflow.slice(0, workflow.indexOf(heredoc[0])).split("\n").length;
+    try {
+      const parsed = JSON.parse(heredoc[1]);
+      if (!Array.isArray(parsed.permissions) || parsed.permissions.length === 0) {
+        errors.push(
+          `ci/pull-request-review.yml:${startLine}: the heredoc parses but has no non-empty "permissions" array`,
+        );
+      }
+    } catch (err) {
+      const bad = heredoc[1].split("\n").findIndex((l) => l.trim().startsWith("#")) + 1;
+      errors.push(
+        `ci/pull-request-review.yml:${startLine + bad - 1}: the heredoc is not valid JSON (${err.message}). It is written verbatim to opencode-ci.json, so shell-style comments inside the markers break it - move them above the \`cat >\` line.`,
+      );
+    }
+  }
+
   // The review run must resolve config and skills only from what this workflow
   // copies under ~/.config/opencode. V2 removed OPENCODE_DISABLE_EXTERNAL_SKILLS
   // (verified: it is ignored while .agents/skills stays visible), so isolation

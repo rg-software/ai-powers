@@ -181,6 +181,17 @@ jobs:
           #  - shell: read-only git/listing. V2 renamed `bash` to `shell`.
           #  - everything else: denied, so PR-injected content cannot exfiltrate
           #    the OpenRouter key through a tool.
+          # `external_directory` is deliberately NOT denied. The runner mounts the
+          # workspace, so opencode's realpath for an in-project file can fall
+          # outside the project worktree - and denying the boundary then blocks
+          # the base-SHA conventions and specs too. Measured: both repos reported
+          # drift as "not graded" because their conventions could not be read.
+          # The skill allowlist above, plus the deleted untrusted trees, already
+          # bound what the review can load.
+          #
+          # Everything between the heredoc markers below is written verbatim into
+          # opencode-ci.json, so it must stay strict JSON - no `#` comments in
+          # here, however useful they are here.
           cat > "$HOME/.gitea/trusted/opencode-ci.json" <<'EOF'
           {
             "$schema": "https://opencode.ai/config.json",
@@ -225,17 +236,15 @@ jobs:
               { "action": "edit", "resource": "*", "effect": "deny" },
               { "action": "question", "resource": "*", "effect": "deny" },
               { "action": "subagent", "resource": "*", "effect": "deny" }
-              # Deliberately NOT denying external_directory. The runner mounts
-              # the workspace, so opencode's realpath for in-project files can
-              # fall outside the project worktree - and denying the boundary
-              # then blocks the base-SHA conventions and specs too. Measured: both
-              # repos reported drift as "not graded" because their conventions
-              # could not be read. The skill allowlist above, plus the deleted
-              # untrusted trees, already bound what the review can load.
             ]
           }
           EOF
-          node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))" && echo "opencode-ci.json is valid JSON"
+          # Validate on its own line. Previously this was `node -e ... && echo`,
+          # which did NOT fail the step when the parse failed - a run shipped an
+          # unreadable config and still went green. A bare failing command under
+          # `set -e` is what actually stops it.
+          node -e "JSON.parse(require('fs').readFileSync('$HOME/.gitea/trusted/opencode-ci.json','utf8'))"
+          echo "opencode-ci.json is valid JSON"
 
           echo "opencode_config=$HOME/.gitea/trusted/opencode-ci.json" >> "$GITHUB_OUTPUT"
           ls -la "$HOME/.config/opencode/agents" "$HOME/.config/opencode/skills" "$HOME/.gitea/trusted"
