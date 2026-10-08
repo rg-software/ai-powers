@@ -1,4 +1,5 @@
 // OPTIONAL project adapter for the he9-* skills.
+// Place it at the repository root as `powers.jsonc`.
 //
 // You usually do not need this file. The skills probe the standard layout and
 // infer the rest:
@@ -17,7 +18,8 @@
 // Create this file only to OVERRIDE one of those. Anything you omit is probed.
 // Nothing here is machine-specific (tokens and hosts come from env / the forge).
 {
-  // "baseBranch": "develop",
+  // Set this to whatever your PRs actually target. Never assume "main".
+  // "baseBranch": "my-integration-branch",
   // "conventions": "docs/conventions.md",
   // "specs": "specs/*/spec.md",
   // "debt": "openspec/tech-debt.md",

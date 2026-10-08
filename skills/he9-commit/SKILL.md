@@ -12,7 +12,7 @@ Goal: finalize the current task with a commit on the current branch.
 
 **Invocation.** This workflow takes no argument: everything it needs comes from the working tree and the resolved project inputs below. Do not wait for an invocation target — read the task from `git status` and the diff.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`). Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
+**Project inputs (optional adapter).** Read `powers.jsonc` if present; it overrides the defaults below. This skill uses: `conventions` (`openspec/conventions.md`), `specs` (`openspec/specs/*/spec.md`). Probe for paths; if one is absent, skip that step rather than guessing. `specs` is the canonical spec location to update when behavior changes.
 
 ## Step 1. Understand context
 
