@@ -1,98 +1,237 @@
 # ai-powers
 
-Personal AI powers for opencode-based projects: portable **skills** and the single **review contract** that both sides of a code review speak.
+A universal agentic setup for [OpenSpec](https://github.com/Fission-AI/OpenSpec)-based projects with emphasis on Unity development. In addition to suggested tools and practices, this repository contains several useful skills that can be installed directly with `npx skills`. We suggest installing universal skills and tools globally (into `~/.agents/skills`) rather than per-project, which is reflected in the following instructions. However, local setup will work equally well.
 
-The point of this repo is one shared vocabulary. The reviewer (`code-review-expert`), the responder (`receiving-code-review`), and the `he9-*` workflows all reference the same rubric — `he9-review-contract` — so severity, action, and disposition mean the same thing everywhere, and a finding can be handed from review to response without translation.
+## Installation
 
-Everything a developer installs is a **skill**. The single exception is the server-only PR review command, which CI dispatches by name and never installs on a machine.
+The suggested setup includes OpenSpec, Unity skills, and this repo:
 
-## Layout
+```shell
+npm install -g @fission-ai/openspec@latest
+
+npx skills add fission-ai/openspec -g
+npx skills add Unity-Technologies/skills -g
+npx skills add rg-software/ai-powers -g
+```
+
+To update installed skills, use
+
+```bash
+npx skills update -g
+```
+
+You will also need to install [Unity-CLI](https://docs.unity.com/en-us/unity-cli) and configure [Unity Pipeline](https://docs.unity.com/en-us/unity-cli/unity-pipeline/unity-pipeline-package) package. For Github integration, you'll need [Github CLI](https://cli.github.com) tool, for Gitea, you'll need [Tea](https://about.gitea.com/products/tea/). Normally, coding agents know how to use these tools, no skills are needed.
+
+Official OpenSpec docs state that you need to initialize OpenSpec per project and install slash commands, but in practice having global skills is sufficient. They can be invoked as commands (e.g., `/openspec-apply-change`).
+
+The local code review flow presumes you have a "reviewer" subagent configured. For OpenCode, this can be done with the following declaration:
+
+```json
+// declaring "reviewer" subagent
+// in ~/.config/opencode/opencode.jsonc
+// make sure to declare REVIEWER_MODEL env variable, e.g.,
+// openrouter/z-ai/glm-5.3-flash
+
+"agent": {
+  "reviewer": {
+    "mode": "subagent",
+    "description": "Reviews code for best practices.",
+    "model": "{env:REVIEWER_MODEL}",
+    "permission": {
+	  "read": "allow",
+	  "edit": "deny"
+    }
+  }
+}
+```
+
+## Per-project setup
+
+In most cases, you do not need to perform any project-specific setup. However, you can override certain default values by copying `powers.jsonc` into your project directory and supplying custom values.
+
+If you are not happy with the defects identified by code review flows, _do not_ fix the flows. Instead, add more rules and suggestions into your `openspec/conventions.md`.
+
+## Project Memory
+
+Documentation is essential in agentic workflows as it lets the agents to rely on explicit knowledge rather than browse sources all the time. Project memory is kept as a system of manually and OpenSpec-managed markdown files. OpenSpec imposes a predefined document structure, and the documents that do not fit it should be placed elsewhere. We suggest the following setup:
 
 ```text
-skills/
-  he9-review-contract/     # the shared rubric: axes, severities, finding schema, dispositions
-  code-review-expert/      # reviewer: how to run a review, including input resolution
-    references/            # the checklists it grades against
-  receiving-code-review/   # responder: how to answer one, with the contract vocabulary
-  he9-start/               # pick a task, prepare a feature branch
-  he9-commit/              # verify and commit with a Conventional Commit message
-  he9-push-pr/             # push and open a pull request
-  he9-debt/                # scan for debt, or promote an entry to the tracker
-  he9-review/              # local review / respond cycle
-docs/
-  adapter.md               # per-project adapter: what goes in the repo vs the machine
-  ci.md                    # CI review: forge support, variables, pinning, adoption
-examples/
-  powers.jsonc             # annotated override example (usually you need nothing)
-  reviewer-agent.jsonc     # local reviewer subagent required by he9-review and he9-debt
-ci/
-  pull-request-review.yml  # server-side review workflow (Gitea or GitHub)
-  commands/
-    he9_pr_review.md       # server-only command the workflow runs (not a skill)
-  scripts/                 # trigger evaluation + review-text extraction
-  opencode-version         # pinned opencode CLI version (coupled to the extractor)
-scripts/
-  validate.mjs             # validates skills, the server command, and the pinned version
-  test-trigger-script.mjs  # tests the CI trigger evaluation
-.github/workflows/
-  validate.yml             # runs the validation on every push and pull request
+openspec/
+├── config.yaml            <-- primary openspec config
+├── conventions.md         <-- project-wide conventions
+├── technical-debt.md      <-- current known debt
+├── specs/                 <-- subsystems (source of truth)
+│   ├── /combat-system
+│   └── /localization
+├── changes/               <-- updates
+│   ├── /archive           <-- history (applied updates)
+│   ├── /remove-sword      <-- update to be applied
+│   └── /add-ja-locale     <-- update to be applied
+│   
+docs/                      <-- non-spec user-facing documents
+├── game-flow.md
+├── levels-outline.md
+├── game-concept.md
+README.md                  <-- user-facing project info
+AGENTS.md                  <-- agent-facing project info
 ```
 
-The reviewer and responder skills both load `he9-review-contract`, and so do the workflows that grade or dispose of findings — `he9-review` and `he9-debt`. Change the rubric in one place and both sides move together.
+The non-spec part of this structure can be extended as necessary. For the ease of browsing, we suggest linking the project repo to [Obsidian](https://obsidian.md) via [Folder Bridge](https://github.com/tescolopio/Obsidian_FolderBridge) plugin.
 
-## Install (per machine)
+### `config.yaml`
 
-With [`npx skills`](https://github.com/vercel-labs/skills):
+OpenSpec [configuration file](https://github.com/Fission-AI/OpenSpec/blob/main/docs/customization.md) can be used to customize workflows. We normally keep project conventions in a separate file, referenced from `config.yaml`:
 
-```bash
-npx skills add rg-software/ai-powers -g -a cline -y
+```markdown
+schema: spec-driven
+
+context: |
+  ## Project: [Game Name]
+
+  Canonical sources:
+  - Specs: `specs/`
+  - Code conventions: `conventions.md`
+...
 ```
 
-`-a cline` looks odd for an opencode repo, and it is deliberate: the target is what the flag selects, not what the skills are for. The `skills` CLI maps each agent id to a directory, and `cline` is the id whose global path is `~/.agents/skills`. opencode reads that location natively, so this puts the skills where they belong for a machine-wide install:
+```markdown
+# Project Conventions (conventions.md)
 
-| Flag | Installs to | opencode reads it |
-|------|-------------|-------------------|
-| `-a cline` | `~/.agents/skills/` | yes, native |
-| `-a opencode` | `~/.config/opencode/skills/` | yes, native |
+## Tech Stack
 
-Either works. Pick one root per skill and do not install the same skill under both — opencode loads both and lets the later-registered `~/.config/opencode/skills` win, which is confusing to debug. `-a cline` is recommended here because `~/.agents/skills` is shared with other agents, so one install serves them all.
+**Engine:** Unity 6 (URP)
+**Core Paradigm:** Composition over Inheritance,
+                   Event-Driven (C# Events)
 
-Updates are one command either way:
+## Core Dependencies
 
-```bash
-npx skills update -g          # pull the latest revision of everything installed
+- VContainer (Dependency Injection)
+- UniTask (Async/Await)
+- DOTween
+
+## Code Style
+
+- private fields: `_camelCase`
+- public properties: `PascalCase`
+- events: `OnActionName`
+...
 ```
 
-On Windows, add `--copy` if symlink creation is not permitted. Add `--list` to either command to preview first.
+### Design documents
 
-The workflows are invoked by name — `/he9-review worktree`, `/he9-start 42`, `/he9-debt scan Assets/Features`. The text after the name is the workflow's input: the review target, the task source, the debt scope. Each skill states in its body how it reads that text.
+Make sure to place design documents (that declare the target _intent_ rather than the expected _current_ state of the system) outside `/openspec` folder to ensure the coding agents don't treat your plans as the actually implemented functionality.
 
-## Per project
+### Architecture Decision Records (ADRs)
 
-Nothing is required. The skills probe the standard layout (`openspec/conventions.md`, `openspec/specs/*/spec.md`, `openspec/technical-debt.md`, `docs/*.md`) and infer the base branch and tracker. Two optional per-project files:
+A special kind of a non-spec design document is an "ADR": when a major architectural choice is made (e.g., "We will use Event Channels instead of direct references"), we recommend to reflect it in a certain "decision record". Its possible structure is based on "Context", "Decision", and "Consequences" sections ([Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)):
 
-| File | Needed when |
-|------|-------------|
-| `.opencode/powers.jsonc` | the project deviates from the standard layout — overrides only |
-| `reviewer` subagent in `opencode.jsonc` | you want `he9-review` / `he9-debt scan` to use a separate reviewer |
+*   **Context:** We needed to decouple UI from HP logic.
+*   **Decision:** We chose `ScriptableObject` Event Channels.
+*   **Consequences:** UI must verify the Event Channel exists before listening.
 
-Copy `examples/powers.jsonc` and `examples/reviewer-agent.jsonc` as starting points. The reviewer agent is a snippet to **merge** into an existing config, not a file to overwrite. See `docs/adapter.md`.
+### `AGENTS.md`
 
-## CI
+General rules described in `AGENTS.md` provide _declarative_ guidance: they set certain goals to follow, but do not provide any step-by-step recipes. One important aim of system rules is to keep the project well-organized and consistent. In particular, it must be stated that the documentation and the code must be in sync. It might also be advisable to enforce OpenSpec-driven flows as shown in the following example:
 
-`ci/pull-request-review.yml` runs the review headless and posts it as a PR comment. It works on Gitea and GitHub — same file, different folder and token secret. It clones this repo at `AI_POWERS_REF` (a branch or SHA; the resolved SHA is stamped in the review footer), copies the command and skills in, and never executes anything from the PR checkout. It carries its own helper scripts, so adopting a project is one YAML file plus variables. See `docs/ci.md`.
+```markdown
+- Work flows through OpenSpec changes first; implementation does not run ahead of the plan.
+- Use `openspec/specs/*` as the canonical source for technical/runtime documentation.
+- For project-level conventions, examine the `context` section of `openspec/config.yaml`.
+- For system-specific tasks, read the relevant capability spec under `openspec/specs/<capability>/spec.md` (for example: `world-map`, `player-prefs`, `factories`, `rails-tile-system`).
+- Use `openspec/notes/*` as supplemental context only for non-normative ideas and backlog notes.
+```
 
-`ci/commands/he9_pr_review.md` stays a command rather than a skill because the workflow invokes it as `opencode run --command he9_pr_review`, and that lookup resolves against the command registry, where skills do not appear. `scripts/validate.mjs` enforces that separation.
+## Code reviews on PR
 
-## Migration notes
+Copy `ci/pull-request-review.yml` to your project's `.gitea/workflows/` (Gitea) or `.github/workflows/` (GitHub) to setup automated code reviews on pull request. You will need to setup the following variables on the server:
 
-- Replace the old installer (`install/install.ps1`, `install/install.sh`, now removed) with `npx skills add` above, then delete what it left behind:
-  - `~/.config/opencode/commands/he9_*.md` — the old command files, now skills
-  - any copy of this repo's skills under `~/.config/opencode/skills/`, if you previously ran `npx skills add -a opencode`. The install command above targets `~/.agents/skills`, so a leftover copy in the other root would shadow it and silently win. Either delete it or keep installing with `-a opencode` instead.
-- `npx skills update -g` refreshes skills only. The command in `ci/` is not installed on machines and updates with the pinned `AI_POWERS_REF`.
-- Restart opencode if a newly installed skill does not appear; recent versions reload config and skills on their own.
-- Invoking a skill by name (`/he9-review worktree`) attaches it and keeps the text after the name as the input, but only when the composer resolves it as an attachment. Typed as plain text with no attachment, it reaches the model as prose and the model may or may not load the skill. Each workflow says what to read, so this degrades rather than breaks.
+- `AI_MODEL_NAME`: e.g., `openai/gpt-5.6-terra`; all requests go via [OpenRouter](https://openrouter.ai).
+- `AI_POWERS_REF`: branch to use in the `ai-powers` repo (normally `main`).
+- `AI_POWERS_REPO`: normally `rg-software/ai-powers`.
+- `OPENROUTER_API_KEY` (in the secrets section): your OpenRouter key.
 
-## License
+See `docs/ci.md` for more details.
 
-MIT — see `LICENSE`.
+## Processes
+
+### General work organization
+
+The proposed Github/Gitea setup is optimized for a typical "git-flow" based process:
+
+1) Identify or retrieve an issue.
+2) Create a branch for this issue.
+3) Address the issue:
+	- a) directly, if it does not entail specs update (a bugfix, upgraded graphics, etc.);
+	- b) via an OpenSpec-based workflow otherwise.
+4) Ideally, update project test suite.
+5) Once the issue is resolved:
+	- perform local cleanup/refactoring if needed;
+	- do self-code review and address identified issues;
+	- initiate a pull request (PR).
+6) Receive a server-triggered automated code review for the PR.
+7) Update code if necessary, then merge the PR.
+
+We recommend that the PR Description contains a reference to the issue number and a keyword like ["fixes" or "closes"](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests), so the linked issue gets closed automatically.
+
+### Starting a task
+
+The presumed "unit of work" is an "issue" (in Github terms), which in fact can be a relatively large-scale functionality (e.g., the whole subsystem). This issue must be present in a text form, so the user has (a) either to type it; or (b) fetch it from Gitea/Github. Starting work on a task is handled by `he9-start`:
+
+```shell
+# pick a Gitea issue, an OpenSpec change, or an ad-hoc task
+# (optionally specify the issue number)
+/he9-start
+```
+
+This command also creates  creates a properly named feature branch for the task.
+
+### Implementing a feature
+
+A recommended approach towards a new feature is via OpenSpec. As [per documentation](https://github.com/Fission-AI/OpenSpec/blob/main/docs/migration-guide.md), "don't overthink it":
+
+- Use `/openspec-propose <feature description>` to generate specs.
+- Review specs, then fix/improve them interactively.
+- Once specs are okay, use `/openspec-apply` to implement.
+
+As a rule of thumb, use OpenSpec for any change that corresponds to a potential change in documentation. E.g., a small bugfix is likely not such a change (because it makes documentation correct), but a new feature or a refactoring (since it changes classes) are.
+
+Once all the tasks are accomplished, the proposal should be archived (`/openspec-archive`). You can work on several proposals simultaneously.
+
+To commit changes with an autogenerated message, you can a) either call `/he9-commit` or b) add auto-commit rules to `AGENTS.md`.
+
+### Initiating a PR
+
+When the local branch is ready for PR, use the following command to open it:
+
+```shell
+/he9-push-pr # push the current branch and initiate a pull request
+```
+
+If "code reviews on PR" are enabled, the server will execute `he9_pr_review.md` workflow. Code reviews are structured: all identified defects are ranked according to the `he9-review-contract` skill. Once code review is ready, you can take a second look at the report by running
+
+```shell
+/he9-review respond <PR-number>
+```
+
+As a result of this double review, you can a) address some defects; b) ignore some defects; c) defer some defects by protocoling them in `technical-debt.md`.
+
+### Local code reviews
+
+You can also perform a scoped review/respond cycle on your local machine using a separate "reviewer" subagent by calling
+
+```shell
+/he9-review <scope> # e.g., "branch", "worktree", "staged", "commit"
+```
+
+This flow adheres to the same `he9-review-contract` and results in the same actionable report as the PR review/respond cycle. 
+
+### Handling technical debt
+
+Implementation of a complex feature might bring in suboptimal code and documentation drift. Generally, task-based workflows do not require frequent refactoring. Instead, we provide a command for scoped improvements:
+
+```shell
+/he9-debt scan <scope>      # find debt in scope
+/he9-debt promote <item-id> # escalate entry to the issue tracker
+```
+
+In the `scan` mode, this flow can analyze the given scope, such as the whole codebase, a given subsystem or a given path. It generally follows the same review/respond cycle according to `he9-review-contract`, but unlike reviews, it looks at the _current_ codebase snapshot rather than at recent _changes_. The "debt" workflow also does not offer fixing defects: instead, they are only tracked in the `technical-debt.md` document (duplicates are removed/merged automatically). In the `promote` mode, it checks whether the specified debt issue still holds, and moves it from the debt document to the tracker (Github/Gitea issues).
