@@ -12,7 +12,7 @@ Goal: push the current feature branch and open a pull request.
 
 **Invocation.** The invocation text is the words after the skill name. The single word `commit` means "commit first, without prompting, then continue" (see Step 1). Any other or empty text is the normal path.
 
-**Project inputs (optional adapter).** Read `.opencode/powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab) per this contract's "Resolving the tracker"). Probe for paths; if one is absent, skip that step rather than guessing. Use the resolved tracker's tooling.
+**Project inputs (optional adapter).** Read `powers.jsonc` if present; it overrides the defaults below. This skill uses: `baseBranch` (default `origin/HEAD`; if unset, ask and offer to record it), `tracker` (auto: the git remote host's forge, else ask; a forge name resolved to a CLI (gh/tea/glab) per this contract's "Resolving the tracker"). Probe for paths; if one is absent, skip that step rather than guessing. Use the resolved tracker's tooling.
 
 ## Step 1. Prepare and push
 
