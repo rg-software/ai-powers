@@ -261,6 +261,17 @@ if (existsSync(workflowPath) && opencodeVersion) {
     );
   }
 
+  // `external_directory: deny` looks like free hardening and is not. The runner
+  // mounts the workspace, so opencode's realpath for an in-project file can fall
+  // outside the project worktree, and denying the boundary then blocks the
+  // base-SHA conventions and specs as well — measured on both repos, which
+  // reported convention drift as "not graded". Catch it if it comes back.
+  if (/"action":\s*"external_directory"[^\n]*"effect":\s*"deny"/.test(workflow)) {
+    errors.push(
+      'ci/pull-request-review.yml: denies external_directory — on a mounted workspace this also blocks in-project files, so the reviewer cannot read the base-SHA conventions',
+    );
+  }
+
   // The review run must resolve config and skills only from what this workflow
   // copies under ~/.config/opencode. V2 removed OPENCODE_DISABLE_EXTERNAL_SKILLS
   // (verified: it is ignored while .agents/skills stays visible), so isolation

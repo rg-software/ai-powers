@@ -224,8 +224,14 @@ jobs:
               { "action": "websearch", "resource": "*", "effect": "deny" },
               { "action": "edit", "resource": "*", "effect": "deny" },
               { "action": "question", "resource": "*", "effect": "deny" },
-              { "action": "subagent", "resource": "*", "effect": "deny" },
-              { "action": "external_directory", "resource": "*", "effect": "deny" }
+              { "action": "subagent", "resource": "*", "effect": "deny" }
+              # Deliberately NOT denying external_directory. The runner mounts
+              # the workspace, so opencode's realpath for in-project files can
+              # fall outside the project worktree - and denying the boundary
+              # then blocks the base-SHA conventions and specs too. Measured: both
+              # repos reported drift as "not graded" because their conventions
+              # could not be read. The skill allowlist above, plus the deleted
+              # untrusted trees, already bound what the review can load.
             ]
           }
           EOF
