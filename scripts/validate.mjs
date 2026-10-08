@@ -439,6 +439,43 @@ if (!/opencode run[\s\S]{0,200}--agent he9_pr_review/.test(readFileSync(join(roo
   );
 }
 
+// This repo has two validators: this file, and an inline bash layout check in
+// .github/workflows/validate.yml. The V2 migration updated this one and missed
+// the bash, which failed CI on a commit that was locally green. So assert the
+// stale paths are gone from every workflow that could assert them — the failure
+// mode is a reference outliving the thing it points at, not a missing file.
+const layoutConsumers = [
+  ...(existsSync(join(root, ".github", "workflows"))
+    ? readdirSync(join(root, ".github", "workflows")).map((e) => join(root, ".github", "workflows", e))
+    : []),
+  ...readdirSync(join(root, "ci"))
+    .filter((e) => e.endsWith(".yml") || e.endsWith(".yaml"))
+    .map((e) => join(root, "ci", e)),
+];
+
+// This repo has two validators: this file, and an inline bash layout check in
+// .github/workflows/validate.yml. The V2 migration updated this one and missed
+// the bash, which failed CI on a commit that was locally green. So assert the
+// stale paths are gone from every workflow that could assert them — the failure
+// mode is a reference outliving the thing it points at, not a missing file.
+//
+// A line naming a stale path in order to assert it *exists* is the bug. A line
+// naming it to assert it does *not* exist is the guard against the bug, and must
+// be allowed through — otherwise this rule forbids its own defence.
+for (const consumerPath of layoutConsumers) {
+  const lines = readFileSync(consumerPath, "utf8").split("\n");
+  lines.forEach((line, i) => {
+    for (const stale of ["ci/commands", "--command he9_pr_review"]) {
+      const at = line.indexOf(stale);
+      if (at === -1) continue;
+      if (line.lastIndexOf("!", at) !== -1) continue; // a negation guard, not an assertion
+      errors.push(
+        `${rel(consumerPath)}:${i + 1}: asserts "${stale}" — the server review is an agent under ci/agents/, dispatched with --agent`,
+      );
+    }
+  });
+}
+
 if (errors.length > 0) {
   console.error("ai-powers validation failed:");
   for (const error of errors) console.error("  - " + error);
