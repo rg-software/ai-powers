@@ -23,12 +23,12 @@ Note that a manual dispatch runs the workflow file from the **selected ref**, no
 
 - The workflow is loaded from the PR **base** branch (`pull_request_target`), never the PR head.
 - All executed artifacts are **trusted and pinned**: ai-powers at `AI_POWERS_REF`, and tools from the registry. Nothing from the PR checkout is ever executed.
-- The reviewer runs read-only: `edit`/`write`/`question` denied, `webfetch`/`websearch` denied, `bash` restricted to read-only git and listing commands. This stops PR-injected content from exfiltrating the model key through tools.
-- The review resolves configuration and skills **only** from what the workflow copies under `~/.config/opencode`. `OPENCODE_DISABLE_PROJECT_CONFIG` covers `.opencode/`, `OPENCODE_DISABLE_EXTERNAL_SKILLS` covers `.agents/` and `.claude/`. Together they mean a directory in the checkout cannot silently become an input to its own review.
+- The reviewer runs read-only: `edit`/`write`/`question` denied, `webfetch`/`websearch` denied, `shell` restricted to read-only git and listing commands. This stops PR-injected content from exfiltrating the model key through tools.
+- The review resolves configuration and skills **only** from what the workflow copies under `~/.config/opencode`. `OPENCODE_DISABLE_PROJECT_CONFIG` covers `.opencode/`, and a dedicated step deletes `.agents/`, `.claude/`, `.opencode/` and `opencode.json*` from the checkout (refusing to continue if any survive) while the permissions config allowlists skills by id. Together they mean a directory in the checkout cannot silently become an input to its own review. (`OPENCODE_DISABLE_EXTERNAL_SKILLS` was a 1.x mechanism and is ignored by V2.)
 
 ## What the reviewer reads
 
-Because external skills are disabled, the workflow installs the review skills into `~/.config/opencode/skills` rather than `~/.agents/skills` — the config dir is scanned unconditionally, and after the external walk, so a trusted copy wins by precedence. The two are coupled: adding the flag without moving the copy leaves the reviewer with no skills at all, and the workflow's sanity checks fail loudly rather than silently.
+The checkout's untrusted agent/skill/config trees are deleted before the review, so the workflow installs the review skills into `~/.config/opencode/skills` rather than `~/.agents/skills` — the config dir is scanned unconditionally, and after the external walk, so a trusted copy wins by precedence. The two are coupled: deleting without the skill allowlist (or vice versa) leaves a shadowing gap, and the workflow's sanity checks fail loudly rather than silently.
 
 Two things are deliberately **not** covered, and neither is worth hardening for a first-party repo:
 
@@ -41,10 +41,10 @@ Two things are deliberately **not** covered, and neither is worth hardening for 
 | Artifact | Source | Pinned |
 |----------|--------|--------|
 | Workflow + helper scripts | `AI_POWERS_REPO` (`ci/scripts/*.js`) | `AI_POWERS_REF` |
-| `ci/commands/he9_pr_review.md`, review skills, contract | `AI_POWERS_REPO` | `AI_POWERS_REF` |
+| `ci/agents/he9_pr_review.md`, review skills, contract | `AI_POWERS_REPO` | `AI_POWERS_REF` |
 | Project conventions/specs/adapter | PR **base** SHA (via the checkout) | base SHA |
 
-The server-only review command lives at `ci/commands/`, beside the workflow that runs it, and is **not** installed on developer machines — everything a developer installs is a skill. It stays a command because the workflow invokes it as `opencode run --command he9_pr_review`, and that lookup resolves against the command registry, where skills do not appear. `scripts/validate.mjs` enforces that a `skills/he9-pr-review/` directory does not exist.
+The server-only review agent lives at `ci/agents/`, beside the workflow that runs it, and is **not** installed on developer machines — everything a developer installs is a skill. It stays an agent (not a skill) because the workflow dispatches it as `opencode run --agent he9_pr_review`, and that lookup resolves against the agent registry, where skills do not appear. `scripts/validate.mjs` enforces that a `skills/he9-pr-review/` directory does not exist.
 
 The opencode CLI version is pinned in `ci/opencode-version`, because it is coupled to `ci/scripts/extract-review-text.js` (which parses `opencode run --format json`). Bumping the CLI and the extractor together, in one reviewed commit, is how a change to the event format gets handled. A project can override with the `OPENCODE_VERSION` variable.
 

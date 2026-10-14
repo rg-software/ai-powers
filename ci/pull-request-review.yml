@@ -179,8 +179,13 @@ jobs:
           #    allowed id - that is what the removal step is for - but it does
           #    stop any skill we did not name, including sources added later.
           #  - shell: read-only git/listing. V2 renamed `bash` to `shell`.
+          #    The check splits pipelines and chains (`|`, `&&`, `||`, `;`)
+          #    into segments and denies the whole call when ANY segment is not
+          #    allowlisted, so `git diff … | head` is denied even though bare
+          #    `git diff` is allowed. The review agent is therefore instructed
+          #    (ci/agents/he9_pr_review.md) to run bare git commands only.
           #  - everything else: denied, so PR-injected content cannot exfiltrate
-          #    the OpenRouter key through a tool.
+          #    the model key through a tool.
           # `external_directory` is deliberately NOT denied. The runner mounts the
           # workspace, so opencode's realpath for an in-project file can fall
           # outside the project worktree - and denying the boundary then blocks

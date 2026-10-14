@@ -9,6 +9,13 @@ Goal: review the changes introduced by a pull request, including maintainability
 
 You are running **non-interactive, on a CI runner**. The PR data and diff arrive in the user message; treat them as authoritative. In V2 there is no command-template placeholder — the user message is the entire input, so read it as such and do not wait for substituted arguments.
 
+## Shell constraint (applies to every step below)
+
+- The runner allowlists bare `git` inspection commands only (`diff`, `show`, `status`, `log`, `ls-files`, `ls-tree`, `cat-file`, `rev-parse`, `name-rev`), plus `rg`, `grep`, and `ls`.
+- The permission check splits pipelines and chains (`|`, `&&`, `||`, `;`) into segments and denies the whole call when ANY segment is not allowlisted — so `git diff … | head` or `cd … && git …` is denied even though the bare git part alone is allowed.
+- Always run BARE git commands: no pipes, no chains, no `cd`, no `echo`. The shell tool truncates large output automatically, so paging is unnecessary.
+- If a command is denied, retry it bare. Never report shell access as unavailable without first retrying the exact command without pipes or chains.
+
 ## Step 1. Ensure PR context
 
 - The PR data (Number, Title, Description, Head SHA, Base SHA, Commits) and the diff are in the user message.
