@@ -70,7 +70,7 @@ The point is that no non-empty invocation ever silently becomes a whole-branch r
 ## Mode: respond <PR number>
 
 1. If the invocation text carries no PR number, list the open PRs through the resolved `tracker` and ask the user to choose one.
-2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). If none exists, inform the user and stop.
+2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). Fetch per `he9-review-contract` → tracker/CLI retrieval and match the marker on the raw body — list renderers may truncate. If none exists, inform the user and stop.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
 4. Act on the dispositions: write every `defer-debt` finding into the resolved `debt` document as a self-contained entry (item template; inline the evidence, symptom, and `file:line`; the finding `id` may remain as provenance only), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating it here.
 5. Ask whether to fix the in-branch issues now, or defer the selected findings into the resolved `debt` document.

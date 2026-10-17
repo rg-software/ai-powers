@@ -40,6 +40,14 @@ If the CLI is missing or unauthenticated, **name it and how to fix it** — do n
 
 > `he9-push-pr` needs the GitHub CLI for this repository (`gh`), which is not authenticated. Run `gh auth login`, or set `GH_TOKEN`. I can still draft the PR body without opening it.
 
+## Fetching the marked review
+
+`he9-review` respond mode matches `<!-- he9-reviewer:v1 -->` on the **raw comment body**. List renderers are allowed to truncate: measured 2026-10-17, `tea comments list` cuts bodies in every output format (`table`, `json`, `yaml`, `simple`), so a marker search over that surface reports "no review" on a reviewed PR. When fetching a review, prefer the CLI's raw JSON surface and match the marker there:
+
+- gitea: `tea pr <n> --comments --output json`, match on `comments[].body` (the marker arrives JSON-escaped as `\u003c!--`, which decodes to `<!--`).
+
+Same rule generalizes: if a list renderer truncates, switch to that CLI's raw/untruncated surface rather than concluding the marker is absent.
+
 ---
 
 ## Configuring the reviewer
