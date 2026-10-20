@@ -26,7 +26,7 @@ Goal: push the current feature branch and open a pull request.
 
 - Title from the branch's commits: `git log <base>..HEAD --oneline`, where `<base>` is the resolved `baseBranch`; prefer the primary Conventional Commit subject.
 - Body from the commit history and the diff against the resolved `baseBranch`: what changed and why; include the verification performed (per `he9-commit`).
-- Link the tracked issue from the branch name (`issue-{id}`): `Resolves #123` or `Fixes #123`. Skip if not issue-based.
+- Link the tracked issue: from the branch name (`issue-{id}`), or — when there is no issue branch — from an id confirmed from a durable source (the session's invocation text, an existing commit on this branch, or a tracker query you actually ran and matched). Never infer or guess a number; do not apply issue magic words to non-forge ids (`TD-###`, spec-change names). Use `Fixes #123` (or `Resolves #123`) only when the change fully resolves the issue, `Refs #123` otherwise. The PR body is the canonical auto-close hook: it takes effect on merge to the default branch. If no reference is confirmed, omit it.
 
 ## Step 3. Open the PR
 
