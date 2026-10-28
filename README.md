@@ -182,7 +182,7 @@ The presumed "unit of work" is an "issue" (in Github terms), which in fact can b
 /he9-start
 ```
 
-This command also creates  creates a properly named feature branch for the task.
+This command also creates a properly named feature branch for the task.
 
 ### Implementing a feature
 
