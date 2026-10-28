@@ -144,10 +144,12 @@ General rules described in `AGENTS.md` provide _declarative_ guidance: they set 
 
 Copy `ci/pull-request-review.yml` to your project's `.gitea/workflows/` (Gitea) or `.github/workflows/` (GitHub) to setup automated code reviews on pull request. You will need to setup the following variables on the server:
 
-- `AI_MODEL_NAME`: e.g., `openai/gpt-5.6-terra`; all requests go via [OpenRouter](https://openrouter.ai).
+- `AI_MODEL_NAME`: full OpenCode model id in `provider/model` form, e.g., `openrouter/openai/gpt-5-mini` or `anthropic/claude-sonnet-4-5`. OpenCode reads the key matching the provider prefix (see secrets below).
 - `AI_POWERS_REF`: branch to use in the `ai-powers` repo (normally `main`).
 - `AI_POWERS_REPO`: normally `rg-software/ai-powers`.
-- `OPENROUTER_API_KEY` (in the secrets section): your OpenRouter key.
+- Provider key (in the secrets section): set the secret matching your model's provider — e.g., `OPENROUTER_API_KEY` for `openrouter/...`, `OPENAI_API_KEY` for `openai/...`, `ANTHROPIC_API_KEY` for `anthropic/...`, `OPENCODE_API_KEY` for `opencode/...` (Zen) or `opencode-go/...` (Go). Only the matching one needs to be set.
+
+Migrating from the OpenRouter-only setup: prefix your existing value with `openrouter/`, e.g., `openai/gpt-5.6-terra` becomes `openrouter/openai/gpt-5.6-terra`.
 
 See `docs/ci.md` for more details.
 

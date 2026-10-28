@@ -64,10 +64,10 @@ The workflow commits no project-local helper scripts: it ships its own (`ci/scri
 |------|------|---------|
 | `AI_POWERS_REPO` | var | `owner/ai-powers` |
 | `AI_POWERS_REF` | var | branch or SHA of ai-powers to use |
-| `AI_MODEL_NAME` | var | reviewer model id |
+| `AI_MODEL_NAME` | var | reviewer model id in `provider/model` form, e.g. `openrouter/openai/gpt-5-mini` |
 | `AI_REVIEW_MENTION` | var, optional | comment text that triggers a manual review (default `@ai-reviewer`) |
 | `OPENCODE_VERSION` | var, optional | override the opencode CLI version; default is `ci/opencode-version` in ai-powers |
-| `OPENROUTER_API_KEY` | secret | model provider key |
+| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` / `XAI_API_KEY` / `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY` / `OPENCODE_API_KEY` | secret | model provider key — set the one matching your model's provider prefix (`opencode/...` and `opencode-go/...` both use `OPENCODE_API_KEY`); the rest may stay unset |
 | `AIR_GITEA_API_TOKEN` | secret | token used to post the review comment |
 
 ## Reviewer identity

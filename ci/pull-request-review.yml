@@ -311,7 +311,18 @@ jobs:
           PRHEADSHA: ${{ steps.setupenv.outputs.prHeadSha }}
           PRBASESHA: ${{ steps.setupenv.outputs.prBaseSha }}
           SHAS: ${{ steps.setupenv.outputs.prCommitsShas }}
+          # Provider keys are passed through generically: OpenCode picks the
+          # variable matching the provider prefix of AI_MODEL_NAME
+          # (e.g. `openai/...` reads OPENAI_API_KEY). Set the secret for
+          # whichever provider you use; the rest may stay unset.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           AI_MODEL_NAME: ${{ vars.AI_MODEL_NAME }}
           OPENCODE_CONFIG: ${{ steps.trusted.outputs.opencode_config }}
           OPENCODE_DISABLE_AUTOUPDATE: "1"
@@ -362,10 +373,11 @@ jobs:
           # Note: this step runs under `bash -e` (act default), so a failing
           # opencode run must not abort the script before diagnostics are printed.
           set +e
+          : "${AI_MODEL_NAME:?AI_MODEL_NAME repo variable is required (provider/model, e.g. openrouter/openai/gpt-5-mini)}"
           opencode run \
             --standalone \
             --agent he9_pr_review \
-            --model "openrouter/${AI_MODEL_NAME}" \
+            --model "${AI_MODEL_NAME}" \
             --auto \
             --format json \
             -- "$PROMPT" \
