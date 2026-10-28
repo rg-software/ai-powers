@@ -149,8 +149,6 @@ Copy `ci/pull-request-review.yml` to your project's `.gitea/workflows/` (Gitea) 
 - `AI_POWERS_REPO`: normally `rg-software/ai-powers`.
 - Provider key (in the secrets section): set the secret matching your model's provider — e.g., `OPENROUTER_API_KEY` for `openrouter/...`, `OPENAI_API_KEY` for `openai/...`, `ANTHROPIC_API_KEY` for `anthropic/...`, `OPENCODE_API_KEY` for `opencode/...` (Zen) or `opencode-go/...` (Go). Only the matching one needs to be set.
 
-Migrating from the OpenRouter-only setup: prefix your existing value with `openrouter/`, e.g., `openai/gpt-5.6-terra` becomes `openrouter/openai/gpt-5.6-terra`.
-
 See `docs/ci.md` for more details.
 
 ## Processes
