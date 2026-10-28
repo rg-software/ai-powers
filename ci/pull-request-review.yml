@@ -412,7 +412,7 @@ jobs:
           RESULT: ${{ steps.analyze.outputs.review_output }}
           AI_POWERS_SHA: ${{ steps.powers.outputs.ai_powers_sha }}
         with:
-          github-token: ${{ secrets.AIR_GITEA_API_TOKEN }}
+          github-token: ${{ secrets.FORGE_API_TOKEN }}
           script: |
             // A stable marker identifies this bot's reviews independent of the
             // token's user name. he9-review respond matches on it.

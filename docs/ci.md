@@ -4,12 +4,12 @@ The PR-review workflow runs the `he9_pr_review` command headless and posts the r
 
 ## Forge support
 
-The workflow is written to work on both **Gitea Actions** and **GitHub Actions** — the actions it uses (`actions/checkout`, `actions/github-script`) and the `github.rest.*` (octokit) calls are implemented by both. What differs per forge is only the **file location** and the **token secret name**:
+The workflow is written to work on both **Gitea Actions** and **GitHub Actions** — the actions it uses (`actions/checkout`, `actions/github-script`) and the `github.rest.*` (octokit) calls are implemented by both. What differs per forge is only the **file location**:
 
 | Forge | Put the file at | Token secret |
 |-------|-----------------|--------------|
-| Gitea | `.gitea/workflows/pull-request-review.yml` | `AIR_GITEA_API_TOKEN` (must be able to comment on issues/PRs) |
-| GitHub | `.github/workflows/pull-request-review.yml` | `GITHUB_TOKEN`, or a PAT if you need cross-repo access |
+| Gitea | `.gitea/workflows/pull-request-review.yml` | `FORGE_API_TOKEN` (must be able to comment on issues/PRs) |
+| GitHub | `.github/workflows/pull-request-review.yml` | `FORGE_API_TOKEN` (a PAT able to comment on issues/PRs) |
 
 Nothing else in the workflow is forge-specific.
 
@@ -68,7 +68,7 @@ The workflow commits no project-local helper scripts: it ships its own (`ci/scri
 | `AI_REVIEW_MENTION` | var, optional | comment text that triggers a manual review (default `@ai-reviewer`) |
 | `OPENCODE_VERSION` | var, optional | override the opencode CLI version; default is `ci/opencode-version` in ai-powers |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` / `XAI_API_KEY` / `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY` / `OPENCODE_API_KEY` | secret | model provider key — set the one matching your model's provider prefix (`opencode/...` and `opencode-go/...` both use `OPENCODE_API_KEY`); the rest may stay unset |
-| `AIR_GITEA_API_TOKEN` | secret | token used to post the review comment |
+| `FORGE_API_TOKEN` | secret | forge token used to post the review comment (renamed from `AIR_GITEA_API_TOKEN`; rename the secret when you update a previously copied workflow) |
 
 ## Reviewer identity
 
