@@ -222,7 +222,7 @@ The response is posted back to the PR as a marked comment once you confirm the d
 You can also perform a scoped review/respond cycle on your local machine using a separate "reviewer" subagent by calling
 
 ```shell
-/he9-review <scope> # e.g., "branch", "worktree", "staged", "commit"
+/he9-review <target>  # branch (default), worktree, staged, commit [ref], range A...B; add path <p> to any
 ```
 
 This flow adheres to the same `he9-review-contract` and results in the same actionable report as the PR review/respond cycle. 

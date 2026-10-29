@@ -1,6 +1,6 @@
 ---
 name: he9-review
-description: "Code review / respond cycle - review a target locally (branch, uncommitted work, a commit, a range), or respond to the latest review on a PR. Use when the user asks for a review, or to respond to review feedback on a PR. Invocation text is the review target: 'branch' (default), 'worktree', 'staged', 'commit', 'range A..B', 'path p', or 'respond [PR]'."
+description: "Code review / respond cycle - review a target locally (branch, uncommitted work, a commit, a range), or respond to the latest review on a PR. Use when the user asks for a review, or to respond to review feedback on a PR. Invocation text is the review target: 'branch' (default), 'worktree', 'staged', 'commit [ref]', 'range A...B', each optionally with 'path <p>', or 'respond [PR]'."
 license: MIT
 metadata:
   opencode/autoinvoke: false
@@ -14,22 +14,29 @@ Goal: improve code with a single review/respond cycle, including local maintaina
 
 | target | resolved diff spec |
 |--------|--------------------|
-| `branch` (default, or empty) | `<base>...HEAD` — every commit on the branch, not just the latest |
-| `worktree` | uncommitted work: `git diff HEAD` **plus untracked files** |
-| `staged` | `git diff --cached` |
-| `commit` | `git show HEAD` (the last commit; also correct for the root commit) |
-| `range <A>..<B>` | the given range |
-| `path <p>` | the default target restricted to a path: `(<base>...HEAD) -- <p>` |
+| `branch [path <p>]` (default, or empty) | `<base>...HEAD` — every commit on the branch, not just the latest |
+| `worktree [path <p>]` | uncommitted work: `git diff HEAD` **plus untracked files** |
+| `staged [path <p>]` | `git diff --cached` |
+| `commit [ref] [path <p>]` | `git show <ref>` — the last commit by default; any commit-ish is accepted, and this is also correct for the root commit |
+| `range <A>...<B> [path <p>]` | the given range, passed through as written (see the dot rule below) |
 
 `<base>` is the resolved `baseBranch`.
 
-Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate them with `git status --porcelain` and read their contents; otherwise new files are reviewed by name only.
+**`path <p>` is a modifier, not a target.** It may follow any target and appends `-- <p>` to the comparison; for `worktree`, restrict the untracked enumeration to `p` as well. `path <p>` on its own is shorthand for `branch path <p>`. Never drop the filter to make an invocation parse: `worktree path <p>` must not become a whole-worktree review.
 
-**If the invocation text is empty, use `branch`.** If it is non-empty but names no target, **stop and ask — do not fall through to `branch`.** A bare path such as `Assets/Features/InGame` is the common case: it looks like a target but is not one, because `path <p>` has to be spelled. Offer these, in order:
+**Dots in `range`.** Three dots compare the merge-base to `<B>`, which is what "my changes" means: `range origin/main...HEAD`. Two dots compare the two tips, so changes that landed on `<A>` after divergence appear as reversals; write it only when that is genuinely what you want. Pass the range through exactly as written — do not silently change the dots.
 
-- `path <that path>` — the branch diff restricted to it, which is almost always what was meant.
+**`commit` takes a ref, not a path.** A second bare token after `commit` is a commit-ish (`commit HEAD~1`); a path is always spelled `path <p>`. `commit src/` is therefore invalid — stop and ask, do not guess which one was meant.
+
+Examples: `branch`, `worktree path Assets/Features/InGame`, `commit HEAD~1`, `range origin/develop...HEAD`.
+
+Note: `git diff` **invisibly omits untracked files**. For `worktree`, enumerate them with `git status --porcelain [-- <p>]` and read their contents; otherwise new files are reviewed by name only.
+
+**If the invocation text is empty, use `branch`.** If it is non-empty but names no target, **stop and ask — do not fall through to `branch`.** A bare path such as `Assets/Features/InGame` is the common case: it looks like a target but is not one, because the path filter has to be spelled `path <p>`. Offer these, in order:
+
+- `branch path <that path>` — the branch diff restricted to it, which is almost always what was meant. If the changes are uncommitted, `worktree path <that path>` is the equivalent.
 - If they want the whole tree rather than the change, say plainly that this skill cannot do it — it grades changes — and point at `he9-debt scan <scope>`.
-- Otherwise list the valid targets: `branch`, `worktree`, `staged`, `commit`, `range <A>..<B>`, `path <p>`.
+- Otherwise list the valid targets: `branch`, `worktree`, `staged`, `commit [ref]`, `range <A>...<B>`, each with an optional `path <p>`.
 
 The point is that no non-empty invocation ever silently becomes a whole-branch review.
 
@@ -44,7 +51,7 @@ The point is that no non-empty invocation ever silently becomes a whole-branch r
    - Whatever happens, **announce the party** before presenting any finding, in this form: `Reviewing party: reviewer` or `Reviewing party: self-review (not independently reviewed)`. Never present a review without it.
    - If a `reviewer` invocation fails, returns nothing usable, or you cannot confirm it ran, treat it as a failure: report which step failed and stop. Do not substitute your own review and label it as the subagent's.
 
-1. Resolve the target to an explicit diff spec from the table. State the resolved spec before reviewing.
+1. Resolve the target to an explicit diff spec from the table, including the `ref` and any `path <p>` filter, and state it before reviewing so a misread target is visible before the review runs.
 
 2. Invoke the `reviewer` subagent with this task:
 
