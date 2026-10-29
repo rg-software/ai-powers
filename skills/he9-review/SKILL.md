@@ -52,25 +52,27 @@ The point is that no non-empty invocation ever silently becomes a whole-branch r
    >
    > Use the `code-review-expert` skill and grade findings with the `he9-review-contract` skill. Pass it the project inputs resolved above; it owns input resolution, `Not reviewed`, and the non-interactive hand-off skip, so do not restate those. Use `powers.jsonc` (if present) for the conventions and specs to check architecture drift against.
 
-3. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**.
+3. Use the `receiving-code-review` skill — with the `he9-review-contract` vocabulary — to analyze the review and assign a **disposition to every finding**. This is a local review: its response is print-only and is never published. `receiving-code-review`'s publishing step applies only to a PR review.
 
 4. Produce the response in the contract's responder output format.
 
-5. Present both in full as rendered markdown, headed by the announced reviewing party from Step 0: the review, then the response. Do not summarize or omit anything. Reports are **print-only** — do not persist them; the durable artifact is the code change and any debt entry, not the review.
+5. Present both in full as rendered markdown, headed by the announced reviewing party from Step 0: the review, then the response. Do not summarize or omit anything. Reports are **print-only** — do not persist them; the durable artifact is the code change and any debt entry, not the review. (The respond mode's PR comment is the one exception, and it is the transport for dispositions, not a kept report.)
 
 6. Recommend what to address now, applying the contract's severity-to-action policy (use the table in `he9-review-contract`; do not restate it from memory). In short: P0/P1 fix before merge; P2 in touched code usually fix now unless not cheap; P2 outside touched code usually defer; P3 optional.
 
-7. Act on the dispositions. For every `defer-debt` finding, **write a self-contained entry into the resolved `debt` document**, using that document's own item template and grading it per `he9-review-contract` → "Mapping to the debt backlog": inline the evidence, symptom, and `file:line`, because the review is not kept (the finding `id` may remain as provenance only). For `promote-issue` / `promote-change` findings, recommend the focused issue or spec change rather than creating it here — promotion is a deliberate step. `fix-now` findings are this branch's work and are not recorded.
-
-8. Ask the user how to proceed:
+7. Ask the user how to proceed:
    - **A**: fix all recommended issues.
    - **B**: choose issues to fix.
    - **C**: defer selected maintainability issues into the resolved `debt` document.
 
+8. Act on the chosen dispositions. For every `defer-debt` finding, **write a self-contained entry into the resolved `debt` document**, using that document's own item template and grading it per `he9-review-contract` → "Mapping to the debt backlog": inline the evidence, symptom, and `file:line`, because the review is not kept (the finding `id` may remain as provenance only). For `promote-issue` / `promote-change` findings, recommend the focused issue or spec change rather than creating it here — promotion is a deliberate step. `fix-now` findings are this branch's work and are not recorded. Do this only after the user has chosen: the response is a proposal until then.
+
 ## Mode: respond <PR number>
 
 1. If the invocation text carries no PR number, list the open PRs through the resolved `tracker` and ask the user to choose one.
-2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). Fetch per `he9-review-contract` → tracker/CLI retrieval and match the marker on the raw body — list renderers may truncate. If none exists, inform the user and stop.
+2. Find and read the most recent review comment carrying the marker `<!-- he9-reviewer:v1 -->` (the CI reviewer stamps every review with it). Fetch per `he9-review-contract` → tracker/CLI retrieval and match the marker on the raw body — list renderers may truncate. If none exists, inform the user and stop. Also look for an existing comment carrying `<!-- he9-responder:v1 -->`: that is the response slot for this PR and you will edit it rather than post a second one.
 3. Use the `receiving-code-review` skill with the `he9-review-contract` vocabulary: verify each finding, assign a disposition to every one, and emit the contract's responder output format.
-4. Act on the dispositions: write every `defer-debt` finding into the resolved `debt` document as a self-contained entry (item template; inline the evidence, symptom, and `file:line`; the finding `id` may remain as provenance only), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating it here.
-5. Ask whether to fix the in-branch issues now, or defer the selected findings into the resolved `debt` document.
+4. **Confirm before the response becomes durable.** Present the table in full and ask the user to confirm it — call out every `rejected` and `wontfix`, because those leave no code to inspect later — and to choose how to proceed: **A** fix all recommended issues, **B** choose issues to fix, **C** defer selected maintainability issues into the resolved `debt` document. If the user overrules a disposition, change the row now, not after publishing.
+5. **Publish the confirmed table** per `he9-review-contract` → "Publishing the response (PR reviews)": the `<!-- he9-responder:v1 -->` marker first, then `Review: <url or #id of the review comment>`, then the table. If a marked responder comment already exists, edit it in place. Show the same body in the session. If the user declines or posting fails, say so plainly and continue — but state that the next review will treat these findings as undisposed. Offer to retry a failed post.
+6. Act on the confirmed dispositions: write every `defer-debt` finding into the resolved `debt` document as a self-contained entry (item template; inline the evidence, symptom, and `file:line`; the finding `id` may remain as provenance only), and recommend a focused issue or spec change for `promote-issue` / `promote-change` findings rather than creating it here.
+7. If the session still holds the dispositions once fixes land, edit the same comment to cite the commit sha in each `accepted` row. If it does not, leave `fixing` — the next review reads the code, so this is convenience, not a dependency.

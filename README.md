@@ -215,6 +215,8 @@ If "code reviews on PR" are enabled, the server will execute `he9_pr_review.md` 
 
 As a result of this double review, you can a) address some defects; b) ignore some defects; c) defer some defects by protocoling them in `technical-debt.md`.
 
+The response is posted back to the PR as a marked comment once you confirm the dispositions, before you start fixing. The next review reads it and reconciles against it, so a finding you rejected or deferred does not silently return on every push — if it returns, the review says why it disagrees.
+
 ### Local code reviews
 
 You can also perform a scoped review/respond cycle on your local machine using a separate "reviewer" subagent by calling

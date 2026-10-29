@@ -334,6 +334,51 @@ if (existsSync(workflowPath) && opencodeVersion) {
   }
 }
 
+// --- reviewer/responder loop ------------------------------------------------
+// The response comment is the only thing that carries a rejection or deferral
+// across review rounds. If a marker drifts, the workflow stops finding the
+// previous review or its answer and silently degrades to the stateless review
+// this loop replaced — so pin the literals in every file that must agree.
+const REVIEW_MARKER = "<!-- he9-reviewer:v1 -->";
+const RESPONSE_MARKER = "<!-- he9-responder:v1 -->";
+const markerHolders = [
+  ["ci/scripts/get-issue-data.js", [REVIEW_MARKER, RESPONSE_MARKER]],
+  ["ci/pull-request-review.yml", [REVIEW_MARKER]],
+  ["skills/he9-review-contract/SKILL.md", [REVIEW_MARKER, RESPONSE_MARKER]],
+  ["skills/he9-review/SKILL.md", [REVIEW_MARKER, RESPONSE_MARKER]],
+];
+for (const [file, markers] of markerHolders) {
+  const text = readFileSync(join(root, file), "utf8");
+  for (const marker of markers) {
+    if (!text.includes(marker)) {
+      errors.push(
+        `${file}: does not carry ${marker} — the review/response round-trip silently breaks when a marker drifts`,
+      );
+    }
+  }
+}
+
+const priorFeedbackWiring = [
+  ["ci/pull-request-review.yml", /PRIOR_REVIEW:\s*\$\{\{/, "does not pass the prior review to the review run"],
+  ["ci/pull-request-review.yml", /PRIOR_RESPONSE:\s*\$\{\{/, "does not pass the prior response to the review run"],
+  ["ci/pull-request-review.yml", /\$\{PRIOR_REVIEW/, "fetches the prior review but never puts it in the prompt"],
+  ["ci/pull-request-review.yml", /\$\{PRIOR_RESPONSE/, "fetches the prior response but never puts it in the prompt"],
+  ["ci/agents/he9_pr_review.md", /## Prior Findings/, "does not require a Prior Findings section, so reconciliation can be skipped silently"],
+  ["ci/agents/he9_pr_review.md", /untrusted data/i, "does not treat the prior review/response as untrusted data"],
+  ["skills/he9-review-contract/SKILL.md", /## Publishing the response/, "does not define how the response is published"],
+  ["skills/he9-review-contract/SKILL.md", /human-confirmed/i, "does not say the published table is the human-confirmed one"],
+  ["skills/he9-review-contract/SKILL.md", /edit it in place/i, "does not say the responder comment is edited in place, so rounds can post competing tables"],
+  ["skills/he9-review/SKILL.md", /Confirm before the response becomes durable/, "respond mode publishes or implements before the human confirms the dispositions"],
+  ["skills/he9-review/SKILL.md", /Publishing the response/, "respond mode does not publish the response"],
+  ["skills/receiving-code-review/SKILL.md", /Publishing after the human confirms/, "does not say to confirm the dispositions with the human before publishing"],
+];
+for (const [file, pattern, message] of priorFeedbackWiring) {
+  if (!pattern.test(readFileSync(join(root, file), "utf8"))) {
+    errors.push(`${file}: ${message}`);
+  }
+}
+
+// --- tracker resolution ------------------------------------------------------
 // The tracker resolution procedure must live in a *shipped skill*, not only in
 // docs/: `npx skills` installs skills/, so a rule kept in docs/ is invisible to
 // the model and every workflow improvises its own forge. The contract is the one

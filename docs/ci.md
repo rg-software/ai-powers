@@ -76,6 +76,23 @@ The reviewer is **not** matched by user name and is not configurable. Every post
 
 `AI_REVIEW_MENTION` is a separate concept: it is the text a *human* writes in a comment to trigger a manual review (default `@ai-reviewer`). It is a plain substring test and need not name a real user.
 
+## Answers to a review
+
+The review runs on every push and sees only the current diff. Without a recorded answer, a finding the team rejected or deferred comes back on the next round, with no trace of the decision — and the cheapest way to a clean report becomes "fix" something the team decided not to fix.
+
+The answer is a **decision record**, not a fix report, and it is written once the author confirms the dispositions, before the fixes start:
+
+- `he9-review respond <n>` posts a PR comment beginning with `<!-- he9-responder:v1 -->`, carrying `Review: <url>` and the disposition table. One per PR — a later round edits it in place. Because it is written at confirmation time, before the fixes, losing the session context does not lose the reasoning. The published table is the confirmed one; a `rejected` or `wontfix` row is a human decision, not the model's first draft.
+- The workflow's trusted setup step fetches the newest marked response and the review it answers (by the `Review:` link, falling back to the newest review posted before it), and passes them to the model as **untrusted data**. The reviewer must account for every finding in that review in `## Prior Findings`, and may drop one only as `fixed`, `rejected` (reasoning holds), `deferred` (a debt entry or issue exists), or `superseded`.
+- With no response, nothing is fetched: the review is stateless, exactly as before. A project that updates `AI_POWERS_REF` without adopting the responder side sees no change in behaviour, and an old client that posts no response is never misread.
+- The diff still wins. A rejection the code contradicts — absent evidence, a changed premise, or a reason outside the contract's policy — is re-raised with the reason stated. Reconciliation is not obedience.
+
+A response comment is authored by the PR author or a collaborator, so on a repo that accepts untrusted pull requests it is a claim rather than an authority, in the same way `AGENTS.md` is. The reviewer is instructed to verify it against the diff; for a third-party PR, treat its effect as advisory.
+
+This is also why responses are not carried in commit messages: `rejected` and `wontfix` produce no commit, and rebase or squash rewrites the ones that exist. A commit sha appears in an `accepted` row only as provenance.
+
+A step-by-step acceptance script for both the local and PR flows is in `docs/review-loop-test.md`.
+
 ## Adopting in a new project
 
 1. Copy `ci/pull-request-review.yml` to `.gitea/workflows/` or `.github/workflows/`.

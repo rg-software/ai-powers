@@ -30,7 +30,7 @@ Standard-layout projects need no adapter at all. Create it when a project deviat
 
 - `he9-start`, `he9-debt` list/open issues
 - `he9-push-pr` creates and finds pull requests
-- `he9-review respond` reads PR review comments
+- `he9-review respond` reads PR review comments and posts the response
 
 ### How it resolves
 

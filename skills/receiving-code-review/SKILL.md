@@ -24,7 +24,9 @@ This skill is the counterpart to `code-review-expert`: that one produces finding
 4. EVALUATE:  is it technically sound for THIS codebase?
 5. DECIDE:    assign a disposition to every finding
 6. RESPOND:   emit the disposition table, with reasoning for rejects
-7. IMPLEMENT: accepted items one at a time, test each
+7. CONFIRM:   the human confirms the dispositions and what to fix
+8. PUBLISH:   post the confirmed table before changing any code (PR reviews only)
+9. IMPLEMENT: accepted items one at a time, test each
 ```
 
 ## Handling unclear feedback
@@ -126,9 +128,21 @@ NOT WITH:      a long apology, a defence of the original pushback, or over-expla
 
 State the correction factually and move on.
 
+## Publishing after the human confirms
+
+The disposition table is a **decision record**, and its value decays the moment you start changing code. But a decision record has to record a *decision*: the responder proposes dispositions, the human confirms them, and only then are they published. That is a two-step gate, not a formality — `rejected` and `wontfix` are the rows that leave no code to inspect later, so they are exactly the ones a human should sign off.
+
+The confirmation happens in the same session, before any fix, so this does not reintroduce the decay. Waiting until the fix works would.
+
+- **PR review** (a single comment with `<!-- he9-reviewer:v1 -->`): after the human confirms the table and the fix set, post the responder comment per `he9-review-contract` → "Publishing the response (PR reviews)" — marker, `Review:` reference, table; edit the existing marked comment instead of posting a second.
+- **Local review**: print-only. There is nothing to post and nothing reads it later.
+- **The user declines to publish**: do not post. Say that the next review will treat these findings as undisposed and re-raise them.
+
+`accepted` rows may say `fixing`. That is honest: the next review sees the code, not your intention. If the session lives long enough, cite the commit sha afterwards; if it does not, nothing breaks.
+
 ## Output
 
-Emit the **responder output format from the contract** — the per-finding disposition table, the items proposed for this branch, and any dispositions needing a human decision. If this is a GitHub/Gitea inline review, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies` for GitHub), not as a top-level comment.
+Emit the **responder output format from the contract** — the per-finding disposition table, the items proposed for this branch, and any dispositions needing a human decision. Publish it per "Publishing after the human confirms": a marked PR comment for a PR review, edited in place, once the human has confirmed the table. If a *human* left inline review comments, reply in those threads instead (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies` for GitHub), not as a top-level comment.
 
 ## Common mistakes
 
