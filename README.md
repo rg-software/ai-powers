@@ -190,7 +190,8 @@ A recommended approach towards a new feature is via OpenSpec. As [per documentat
 
 - Use `/openspec-propose <feature description>` to generate specs.
 - Review specs, then fix/improve them interactively.
-- Once specs are okay, use `/openspec-apply` to implement.
+- Once specs are okay, use `/he9-tdd <change-name>` to write real failing tests and confirm RED. Review the RED report, then start a fresh session on the same branch (anti-priming: the implementing mind should meet only the specs and the failing tests).
+- In the fresh session, use `/openspec-apply` to implement and make the tests GREEN.
 
 As a rule of thumb, use OpenSpec for any change that corresponds to a potential change in documentation. E.g., a small bugfix is likely not such a change (because it makes documentation correct), but a new feature or a refactoring (since it changes classes) are.
 
