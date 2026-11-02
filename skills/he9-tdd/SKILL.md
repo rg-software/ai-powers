@@ -39,6 +39,8 @@ Announce: `<N files> · <M scenarios> · source-of-truth: changes/<name>/specs`.
 
 ## Step 3. Derive test file paths
 
+Read the change's `tasks.md` and inspect existing tests before writing. Map scenarios to existing cases and pending testing tasks; reuse coverage rather than adding equivalent cases. If the change uses another tracking artifact, locate it from the OpenSpec apply instructions instead of inventing a `tasks.md`. If the tracking artifact is missing or the mapping is ambiguous, ask before changing task state.
+
 For each capability, in priority order:
 
 1. `design.md` Implementation Map — a table mapping capability to implementation file.
@@ -55,6 +57,7 @@ Place the test file per the resolved conventions (same directory, `Tests` siblin
 - When a scenario needs an identifier or seam that does not exist yet, choose the canonical name now and assert against it. The test defines the contract; `apply` must implement exactly that. List every such contract item in the report.
 - When a value is genuinely unknowable from the artifacts, assert the observable behavior or mark the case skipped with a one-line reason and log it as a behavior gap. Never write forced-fail placeholders.
 - Never modify existing passing tests.
+- On reruns, inspect cases already written for this change. Reuse matching cases rather than appending duplicates; if a changed spec requires altering an existing test, explain the mismatch and ask before changing it.
 
 ## Step 5. Run tests and confirm RED
 
@@ -63,7 +66,19 @@ Place the test file per the resolved conventions (same directory, `Tests` siblin
 - FAIL for a wrong reason (typo, bad import path, malformed selector, missing mock) means the test is incorrect — fix the test and re-run.
 - PASS without implementation is a warning: flag it as already-covered or asserting nothing real, and require review before proceeding.
 
-## Step 6. Report and stop
+## Step 6. Reconcile the change's tasks
+
+Make the handoff durable in the change's existing task-tracking artifact, which a fresh apply session reads. Do not rely on this chat report, create a separate report file, or modify the upstream apply skill.
+
+- Record a compact scenario-to-test mapping: spec file and scenario name, test file and case name, command run, observed result, and the failure reason for RED. Record required new public names or identifiers without prescribing implementation internals. Keep evidence concise; do not copy full logs or this session's implementation ideas.
+- Mark a testing task complete only when its entire stated scope is satisfied. An explicit "write tests and verify RED" task can be completed after that verification; "test the feature" or "tests pass" cannot be completed on RED evidence.
+- When a pending task mixes test authoring with implementation or GREEN verification, retain all of its scope: split it into a completed authoring/RED task (only if fully verified) and pending implementation/GREEN tasks. Preserve requirements, constraints, and existing completed work; do not rewrite unrelated tasks.
+- If no task covers making these tests GREEN and running the project's required regression checks, add a pending verification task with those explicit completion criteria and the resolved commands. If the regression command is unknown, ask rather than inventing it.
+- Attach coverage gaps, skipped cases, unexpected passes, and execution blockers to the relevant pending tasks. An already-passing case can cover an existing behavior, but is not RED evidence for missing behavior. A collection/build failure does not prove every case reached its assertion; record the actual level of evidence.
+- Tell the implementing session to inspect and reuse the mapped tests before adding more, add only genuinely missing coverage, and not weaken assertions, skip cases, or change expectations just to obtain GREEN. A conflict with approved specs must be surfaced to the human before changing the tests.
+- Do not implement production behavior, mark implementation/GREEN tasks done, or claim the change is ready to archive. This phase records test preparation, not feature completion.
+
+## Step 7. Report and stop
 
 Report:
 
@@ -79,6 +94,7 @@ Report:
   - <name> → <file>
 **Spec quality gaps:** <vague THEN clauses needing spec revision>
 **Behavior gaps:** <skipped or observable-only cases>
+**Task handoff:** <tracking artifact path; tasks completed/split/left pending>
 ```
 
 Then stop with this handoff, verbatim in meaning: **do not continue to implementation in this session.** Ask the human to review the RED report, then start a **fresh session** on the same branch before running the apply workflow, so the implementing mind meets only the specs and the failing tests, not this session's planning. Name the next step explicitly: run the OpenSpec apply-change workflow in that fresh session to make the tests GREEN.

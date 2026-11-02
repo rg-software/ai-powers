@@ -193,6 +193,27 @@ A recommended approach towards a new feature is via OpenSpec. As [per documentat
 - Once specs are okay, use `/he9-tdd <change-name>` to write real failing tests and confirm RED. Review the RED report, then start a fresh session on the same branch (anti-priming: the implementing mind should meet only the specs and the failing tests).
 - In the fresh session, use `/openspec-apply` to implement and make the tests GREEN.
 
+`he9-tdd` records scenario-to-test mappings and RED evidence in the change's task-tracking artifact. It reconciles test-authoring tasks without marking implementation or GREEN verification complete, and leaves a pending task to run the feature tests and required regression checks. The fresh apply session can read this handoff without inheriting the test-writing conversation. There is no automatic invocation of apply.
+
+The apply skill itself is unchanged: this is a prompt-level workflow, not a hard test gate. Put the persistent GREEN-phase policy in the project's `openspec/conventions.md`, and reference it from `AGENTS.md` and OpenSpec's project context. For example:
+
+```markdown
+## Implementing changes with prewritten tests
+
+- Before adding tests, inspect the change's scenario-to-test mapping and existing
+  cases. Reuse or extend coverage; do not duplicate equivalent cases. Add tests
+  only for genuinely uncovered behavior.
+- Implement the approved specs until the change's tests and the required
+  regression checks pass. If blocked or unable to run them, report that explicitly;
+  do not claim GREEN or complete the verification task.
+- Do not weaken assertions, skip cases, or change expectations merely to obtain
+  GREEN. If a test conflicts with the approved specs, explain the conflict and
+  ask before changing it.
+- Report the exact test commands and their results before claiming completion.
+```
+
+Document the project's actual test commands alongside that policy. CI should enforce the required passing checks; neither a checked task nor the agent's report substitutes for an executed test run.
+
 As a rule of thumb, use OpenSpec for any change that corresponds to a potential change in documentation. E.g., a small bugfix is likely not such a change (because it makes documentation correct), but a new feature or a refactoring (since it changes classes) are.
 
 Once all the tasks are accomplished, the proposal should be archived (`/openspec-archive`). You can work on several proposals simultaneously.
