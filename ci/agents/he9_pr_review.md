@@ -24,7 +24,7 @@ You are running **non-interactive, on a CI runner**. The PR data and diff arrive
 ## Step 2. Scope
 
 - Run `git diff --name-status <Base SHA> <Head SHA>`.
-- Identify the actual code files (`.cs`, `.shader`, `.cginc`, `.asmdef`, etc.).
+- Identify the actual code files for this project's stack — whatever the repo treats as source (for a Unity project: `.cs`, `.shader`, `.cginc`, `.asmdef`).
 - Run `git diff <Base SHA> <Head SHA> -- <file1> <file2> ...` for code files only.
 - Focus on files added or modified by this PR.
 

@@ -1,12 +1,12 @@
 ---
 name: he9-review-contract
-description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Also carries the tracker-resolution procedure (forge → gh/tea/glab) that the he9-* workflows share. Load it when reviewing code or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9-* workflows.
+description: Shared code-review rubric — severity P0-P3 with non-overlapping triggers, category, scope, action (fix-now vs defer), disposition, finding schema, and review/response output formats. Also carries the tracker-resolution procedure (forge → gh/tea/glab) and the spec-artifact grading reading that the he9-* workflows share. Load it when reviewing code or spec artifacts, or responding to a review, before assigning a severity or deciding whether something is fixed in-branch or deferred. Referenced by code-review-expert, receiving-code-review, and the he9-* workflows.
 license: MIT
 ---
 
 # Review Contract
 
-One vocabulary for both sides of a code review. The reviewer grades with it; the responder answers with it. Any document that reviews or responds should reference this file rather than restating it.
+One vocabulary for both sides of a review. The reviewer grades with it; the responder answers with it. The default reading below grades code changes; the workflow-specific readings near the end restate the axes for their subjects — the debt backlog and spec artifacts. Any document that reviews or responds should reference this file rather than restating it.
 
 ## Why this exists
 
@@ -383,3 +383,25 @@ Because a debt entry describes code that already exists rather than a change, th
 ### Removal scales
 
 A removal/cutdown plan is **not** severity. Use `R0` (remove now: obsolete, unreferenced, safe), `R1` (remove this iteration: needs migration or sign-off), `R2` (backlog). Never reuse `P0-P3` for removal priority — the previous skill did, which made one report say `P1` meaning two different things.
+
+---
+
+## Grading spec artifacts
+
+`he9-spec-review` grades a change's planning artifacts (proposal, specs, design) rather than a diff. The axes keep their shape; the readings shift. A debt entry describes code that exists; a spec describes code that does not — so grade a spec finding by the behavior it would produce **if implemented as written**:
+
+| Severity | reading for a spec artifact |
+|----------|------------------------------|
+| `P0` | the spec requires behavior that would ship a P0 — a trust boundary crossed with no validation requirement, unrecoverable state specified as normal |
+| `P1` | contradicts or erodes an approved requirement in the existing main specs (`openspec/specs/*/spec.md`) **without declaring the delta** — the undeclared-drift analog of a regression — or specifies incorrect behavior on a reachable path |
+| `P2` | defects of the contract text with no committed behavioral impact — an untestable THEN, a missing edge/failure scenario, a contradiction among the change's own artifacts |
+| `P3` | wording that does not change what would be built |
+
+A **declared** modification (the delta spec says MODIFIED/REMOVED) is not a finding; an undeclared contradiction is — the grading side of a project's drift-prevention rule.
+
+The P0/P1 boundary reads the same on the specified behavior: damage a follow-up patch cannot undo is P0; a wrong result a patch can fix is P1.
+
+- **Category:** the core list applies where it fits — contradictions and wrong requirements are `correctness`, untestable or missing-coverage scenarios are `tests`, specified security or persistence outcomes are `security` / `data-integrity`. One addition valid in this mode: `feasibility` — what a scenario requires cannot be built with what exists. P1 by default; decision-class when closing the gap (a new asset, a changed expectation) is a real option the human owns.
+- **Scope does not apply** — there is no diff. `file:line` locates the artifact (`openspec/changes/<name>/specs/<cap>/spec.md`); `rule` cites the requirement, scenario, or convention the finding is graded against.
+- **Action:** the loop works on a draft, so every defect-class finding is `fix-now`; `defer-debt` has no draft to defer into. The defer analog is `promote-change` — scope creep is quarantined into a separate change, or parked per the project's notes rules. Decision-class findings are not on the action axis at all; they go to the human.
+- **Floor:** `P3` does not block convergence — note it in the round summary, fix it in passing, or drop it.

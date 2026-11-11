@@ -20,9 +20,9 @@ To update installed skills, use
 npx skills update -g
 ```
 
-You will also need to install [Unity-CLI](https://docs.unity.com/en-us/unity-cli) and configure [Unity Pipeline](https://docs.unity.com/en-us/unity-cli/unity-pipeline/unity-pipeline-package) package. For Github integration, you'll need [Github CLI](https://cli.github.com) tool, for Gitea, you'll need [Tea](https://about.gitea.com/products/tea/). Normally, coding agents know how to use these tools, no skills are needed.
+For Unity, you will also need to install [Unity-CLI](https://docs.unity.com/en-us/unity-cli) and configure [Unity Pipeline](https://docs.unity.com/en-us/unity-cli/unity-pipeline/unity-pipeline-package) package. For Github integration, you'll need [Github CLI](https://cli.github.com) tool, for Gitea, you'll need [Tea](https://about.gitea.com/products/tea/). Normally, coding agents know how to use these tools, no skills are needed.
 
-Official OpenSpec docs state that you need to initialize OpenSpec per project and install slash commands, but in practice having global skills is sufficient. They can be invoked as commands (e.g., `/openspec-apply-change`).
+Official OpenSpec docs state that you need to initialize OpenSpec per project and install slash commands, but in practice having global skills is sufficient. In OpenCode they can be invoked using `@` syntax (e.g., `@openspec-apply-change`). In ClaudeCode, use `/skill-name` syntax.
 
 The local code review flow presumes you have a "reviewer" subagent configured. For OpenCode, this can be done with the following declaration:
 
@@ -47,9 +47,9 @@ The local code review flow presumes you have a "reviewer" subagent configured. F
 
 ## Per-project setup
 
-In most cases, you do not need to perform any project-specific setup. However, you can override certain default values by copying `powers.jsonc` into your project directory and supplying custom values.
+In most cases, you do not need to perform any project-specific setup. However, you can override certain default values by copying `powers.jsonc` into your project directory and supplying custom values. For the always-on policy layer and the OpenSpec/TDD wiring, copy the annotated templates from `examples/` and adapt them: `agents-template.md` → project root as `AGENTS.md`, `openspec-config.yaml` → `openspec/config.yaml`, `conventions-template.md` → `openspec/conventions.md`.
 
-If you are not happy with the defects identified by code review flows, _do not_ fix the flows. Instead, add more rules and suggestions into your `openspec/conventions.md`.
+If you are not happy with the defects identified by code review flows, _do not_ fix the flows. Instead, add more rules and suggestions into your `openspec/conventions.md` (start from `examples/conventions-template.md` if you do not have one).
 
 ## Project Memory
 
@@ -80,42 +80,7 @@ The non-spec part of this structure can be extended as necessary. For the ease o
 
 ### `config.yaml`
 
-OpenSpec [configuration file](https://github.com/Fission-AI/OpenSpec/blob/main/docs/customization.md) can be used to customize workflows. We normally keep project conventions in a separate file, referenced from `config.yaml`:
-
-```markdown
-schema: spec-driven
-
-context: |
-  ## Project: [Game Name]
-
-  Canonical sources:
-  - Specs: `specs/`
-  - Code conventions: `conventions.md`
-...
-```
-
-```markdown
-# Project Conventions (conventions.md)
-
-## Tech Stack
-
-**Engine:** Unity 6 (URP)
-**Core Paradigm:** Composition over Inheritance,
-                   Event-Driven (C# Events)
-
-## Core Dependencies
-
-- VContainer (Dependency Injection)
-- UniTask (Async/Await)
-- DOTween
-
-## Code Style
-
-- private fields: `_camelCase`
-- public properties: `PascalCase`
-- events: `OnActionName`
-...
-```
+OpenSpec [configuration file](https://github.com/Fission-AI/OpenSpec/blob/main/docs/customization.md) can be used to customize workflows. We normally keep project conventions in a separate file, referenced from `config.yaml`. Annotated reference implementations for the pair: `examples/openspec-config.yaml` — including the TDD wiring and the `rules.specs` block that feeds `he9-tdd` — and `examples/conventions-template.md`, the minimal conventions file the he9-* flows probe.
 
 ### Design documents
 
@@ -131,7 +96,11 @@ A special kind of a non-spec design document is an "ADR": when a major architect
 
 ### `AGENTS.md`
 
-General rules described in `AGENTS.md` provide _declarative_ guidance: they set certain goals to follow, but do not provide any step-by-step recipes. One important aim of system rules is to keep the project well-organized and consistent. In particular, it must be stated that the documentation and the code must be in sync. It might also be advisable to enforce OpenSpec-driven flows as shown in the following example:
+General rules described in `AGENTS.md` provide _declarative_ guidance: they set certain goals to follow, but do not provide any step-by-step recipes. One important aim of system rules is to keep the project well-organized and consistent. In particular, it must be stated that the documentation and the code must be in sync.
+
+`AGENTS.md` is the only always-loaded layer: skills apply when invoked, and `conventions.md` / `config.yaml` are read only by the skills and OpenSpec prompts that probe them. Any policy that must hold in _out-of-skill_ sessions therefore has to be stated here.
+
+A full annotated template is provided in `examples/agents-template.md`. Copy it to your project root as `AGENTS.md` and adapt. Core flow rules:
 
 ```markdown
 - Work flows through OpenSpec changes first.
@@ -157,18 +126,22 @@ See `docs/ci.md` for more details.
 
 The proposed Github/Gitea setup is optimized for a typical "git-flow" based process:
 
-1) Identify or retrieve an issue.
-2) Create a branch for this issue.
-3) Address the issue:
-	- a) directly, if it does not entail specs update (a bugfix, upgraded graphics, etc.);
-	- b) via an OpenSpec-based workflow otherwise.
-4) Ideally, update project test suite.
-5) Once the issue is resolved:
+1) Identify or retrieve an issue and create its feature branch via `he9-start` flow.
+2) Address the issue:
+	- a) If the issue does not entail spec update (it is a bugfix, gfx update, etc.):
+		- Resolve the issue directly.
+		- Ship it along with the regression test that failed before the change.
+	- b) If the issue needs spec update:
+		- Use `openspec-propose` flow to generate specs.
+		- Use `he9-spec-review` flow to identify & fix gaps.
+		- Use `he9-tdd` flow to generate failing tests.
+		- Use `openspec-apply` flow _in a new session_ to satisfy tests.
+3) Once the issue is resolved:
 	- perform local cleanup/refactoring if needed;
-	- do self-code review and address identified issues;
-	- initiate a pull request (PR).
-6) Receive a server-triggered automated code review for the PR.
-7) Update code if necessary, then merge the PR.
+	- do self-code review and address identified issues using `he9-review`;
+	- initiate a pull request (PR) using `he9-push-pr`.
+4) Receive a server-triggered automated code review for the PR.
+5) Update code if necessary, then merge the PR.
 
 We recommend that the PR Description contains a reference to the issue number and a keyword like ["fixes" or "closes"](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests), so the linked issue gets closed automatically.
 
@@ -179,7 +152,7 @@ The presumed "unit of work" is an "issue" (in Github terms), which in fact can b
 ```shell
 # pick a Gitea issue, an OpenSpec change, or an ad-hoc task
 # (optionally specify the issue number)
-/he9-start
+@he9-start
 ```
 
 This command also creates a properly named feature branch for the task.
@@ -188,51 +161,35 @@ This command also creates a properly named feature branch for the task.
 
 A recommended approach towards a new feature is via OpenSpec. As [per documentation](https://github.com/Fission-AI/OpenSpec/blob/main/docs/migration-guide.md), "don't overthink it":
 
-- Use `/openspec-propose <feature description>` to generate specs.
-- Review specs, then fix/improve them interactively.
-- Once specs are okay, use `/he9-tdd <change-name>` to write real failing tests and confirm RED. Review the RED report, then start a fresh session on the same branch (anti-priming: the implementing mind should meet only the specs and the failing tests).
-- In the fresh session, use `/openspec-apply` to implement and make the tests GREEN.
+- Use `@openspec-propose <feature description>` to generate specs.
+- Review specs, then fix/improve them interactively. For substantial changes, converge the draft first with `@he9-spec-review <change-name>`.
+- Once specs are okay, use `@he9-tdd <change-name>` to write real failing tests and confirm they fail.
+- In the fresh session, on the same branch, use `@openspec-apply` to implement and make the tests pass.
+- If apply cannot make a test pass and believes the test is wrong (or is stuck after repeated attempts), it records a _test dispute_ under the affected task. Run `@he9-tdd <change-name>` again to pick up the dispute, resolve it, and update the record. Then resume apply in a fresh session.
 
-`he9-tdd` records scenario-to-test mappings and RED evidence in the change's task-tracking artifact. It reconciles test-authoring tasks without marking implementation or GREEN verification complete, and leaves a pending task to run the feature tests and required regression checks. The fresh apply session can read this handoff without inheriting the test-writing conversation. There is no automatic invocation of apply.
+The `he9-tdd` flow records the contract in the change's task-tracking artifact (normally `tasks.md`); genuinely bulky evidence overflows to the change's `tdd-report.md`. On every run it first picks up test disputes and resolves them before any new test work.
 
-The apply skill itself is unchanged: this is a prompt-level workflow, not a hard test gate. Put the persistent GREEN-phase policy in the project's `openspec/conventions.md`, and reference it from `AGENTS.md` and OpenSpec's project context. For example:
-
-```markdown
-## Implementing changes with prewritten tests
-
-- Before adding tests, inspect the change's scenario-to-test mapping and existing
-  cases. Reuse or extend coverage; do not duplicate equivalent cases. Add tests
-  only for genuinely uncovered behavior.
-- Implement the approved specs until the change's tests and the required
-  regression checks pass. If blocked or unable to run them, report that explicitly;
-  do not claim GREEN or complete the verification task.
-- Do not weaken assertions, skip cases, or change expectations merely to obtain
-  GREEN. If a test conflicts with the approved specs, explain the conflict and
-  ask before changing it.
-- Report the exact test commands and their results before claiming completion.
-```
-
-Document the project's actual test commands alongside that policy. CI should enforce the required passing checks; neither a checked task nor the agent's report substitutes for an executed test run.
+The persistent GREEN-phase and dispute policies should live in the project's `openspec/conventions.md`, referenced from `AGENTS.md` and OpenSpec's project context (use example from `conventions-template.md` as your starting point). CI should still enforce the required passing checks.
 
 As a rule of thumb, use OpenSpec for any change that corresponds to a potential change in documentation. E.g., a small bugfix is likely not such a change (because it makes documentation correct), but a new feature or a refactoring (since it changes classes) are.
 
-Once all the tasks are accomplished, the proposal should be archived (`/openspec-archive`). You can work on several proposals simultaneously.
+Once all the tasks are accomplished, the proposal should be archived (`@openspec-archive`). You can work on several proposals simultaneously.
 
-To commit changes with an autogenerated message, you can a) either call `/he9-commit` or b) add auto-commit rules to `AGENTS.md`.
+To commit changes with an autogenerated message, you can a) either call `he9-commit` or b) add auto-commit rules to `AGENTS.md`.
 
 ### Initiating a PR
 
 When the local branch is ready for PR, use the following command to open it:
 
 ```shell
-/he9-push-pr         # push the current branch, then create a PR
-/he9-push-pr commit  # commit, then push, then create a PR
+@he9-push-pr         # push the current branch, then create a PR
+@he9-push-pr commit  # commit, then push, then create a PR
 ```
 
 If "code reviews on PR" are enabled, the server will execute `he9_pr_review.md` workflow. Code reviews are structured: all identified defects are ranked according to the `he9-review-contract` skill. Once code review is ready, you can take a second look at the report by running
 
 ```shell
-/he9-review respond <PR-number>
+@he9-review respond <PR-number>
 ```
 
 As a result of this double review, you can a) address some defects; b) ignore some defects; c) defer some defects by protocoling them in `technical-debt.md`.
@@ -244,7 +201,7 @@ The response is posted back to the PR as a marked comment once you confirm the d
 You can also perform a scoped review/respond cycle on your local machine using a separate "reviewer" subagent by calling
 
 ```shell
-/he9-review <target>  # branch (default), worktree, staged, commit [ref], range A...B; add path <p> to any
+@he9-review <target>  # branch (default), worktree, staged, commit [ref], range A...B; add path <p> to any
 ```
 
 This flow adheres to the same `he9-review-contract` and results in the same actionable report as the PR review/respond cycle. 
@@ -254,8 +211,8 @@ This flow adheres to the same `he9-review-contract` and results in the same acti
 Implementation of a complex feature might bring in suboptimal code and documentation drift. Generally, task-based workflows do not require frequent refactoring. Instead, we provide a command for scoped improvements:
 
 ```shell
-/he9-debt scan <scope>      # find debt in scope
-/he9-debt promote <item-id> # escalate entry to the issue tracker
+@he9-debt scan <scope>      # find debt in scope
+@he9-debt promote <item-id> # escalate entry to the issue tracker
 ```
 
 In the `scan` mode, this flow can analyze the given scope, such as the whole codebase, a given subsystem or a given path. It generally follows the same review/respond cycle according to `he9-review-contract`, but unlike reviews, it looks at the _current_ codebase snapshot rather than at recent _changes_. The "debt" workflow also does not offer fixing defects: instead, they are only tracked in the `technical-debt.md` document (duplicates are removed/merged automatically). In the `promote` mode, it checks whether the specified debt issue still holds, and moves it from the debt document to the tracker (Github/Gitea issues).
