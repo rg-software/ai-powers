@@ -143,6 +143,8 @@ The proposed Github/Gitea setup is optimized for a typical "git-flow" based proc
 4) Receive a server-triggered automated code review for the PR.
 5) Update code if necessary, then merge the PR.
 
+A "fresh session" means a new conversation on the same branch; it may use the same LLM. "Review" flows use dedicated subagents that use separate context and can optionally employ a different model (which is recommended).
+
 We recommend that the PR Description contains a reference to the issue number and a keyword like ["fixes" or "closes"](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests), so the linked issue gets closed automatically.
 
 ### Starting a task
